@@ -127,6 +127,7 @@ def train(model_dir, config_train, thr=0.5):
 
     model_module = getattr(import_module("model"), config_train['model'])
     model = model_module(num_classes=n_classes)
+    model = model.to(device)
     if config_train['wandb'] == True:
         wandb.watch(model)
 
@@ -158,8 +159,9 @@ def train(model_dir, config_train, thr=0.5):
             optimizer.zero_grad()
 
             outs = model(inputs)
-            pred = torch.tensor(outs > 0.5, dtype=float)
-            loss = criterion(outs, labels)
+            # print(outs.shape, type(outs))
+            pred = np.array(outs.detach().cpu().numpy() > 0.5, dtype = float)
+            loss = criterion(outs, labels.type(torch.float))
 
             loss.backward()
             optimizer.step()
@@ -167,12 +169,12 @@ def train(model_dir, config_train, thr=0.5):
             loss_value += loss.item()
             # print(pred, labels)
             # print((pred == labels).sum())
-            matches += (pred == labels).sum().item()
+            matches += (pred == labels.detach().cpu().numpy()).sum().item()
             if (idx + 1) % config_train['log_interval'] == 0:
                 cal+=1
                 train_loss = loss_value / config_train['log_interval']
                 train_acc = matches / config_train['batch_size'] / config_train['log_interval'] / n_classes
-                result = calculate_metrics(np.array(pred), np.array(labels))
+                result = calculate_metrics(pred, labels.detach().cpu().numpy())
                 current_lr = get_lr(optimizer)
                 acc += train_acc / 100
                 print(
@@ -217,8 +219,8 @@ def train(model_dir, config_train, thr=0.5):
         with torch.no_grad():
             print("Calculating validation results...")
             model.eval()
-            val_loss_items = []
-            val_acc_items = []
+            val_loss = 0
+            val_acc = 0
             figure = None
             for val_batch in val_loader:
                 inputs, labels = val_batch
@@ -227,22 +229,15 @@ def train(model_dir, config_train, thr=0.5):
                 labels = labels.to(device)
 
                 outs = model(inputs)
-                preds = torch.where(outs>thr, 1., 0.)
+                pred = np.array(outs.detach().cpu().numpy() > 0.5, dtype = float)
 
                 loss_item = criterion(outs, labels).item()
-                acc_item = (labels == preds).sum().item()
-                val_loss_items.append(loss_item)
-                val_acc_items.append(acc_item)
+                acc_item = (labels.detach().cpu().numpy() == pred).sum().item()
+                val_loss += loss_item
+                val_acc += acc_item
 
-                # if figure is None:
-                #     inputs_np = torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()
-                #     inputs_np = dataset_module.denormalize_image(inputs_np, dataset.mean, dataset.std)
-                #     figure = grid_image(
-                #         inputs_np, labels, preds, n=16, shuffle=args.dataset != "MaskSplitByProfileDataset"
-                #     )
-
-            val_loss = np.sum(val_loss_items) / len(val_loader)
-            val_acc = np.sum(val_acc_items) / len(val_dataset)
+            val_loss = val_loss / len(val_loader)
+            val_acc = val_acc / len(val_dataset) / n_classes
             best_val_loss = min(best_val_loss, val_loss)
             if val_acc > best_val_acc:
                 print(f"New best model for val accuracy : {val_acc:4.2%}! saving the best model..")

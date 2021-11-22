@@ -24,7 +24,7 @@ def get_opt_sche(config_train, model):
         optimizer = optim.Adam(
             param_groups,
             lr=float(config_train['lr']),
-            weight_decay=config_train['weight_decay'],
+            weight_decay=float(config_train['weight_decay']),
             amsgrad=config_train['amsgrad']
         )
     # elif args.optimizer == "radam":
