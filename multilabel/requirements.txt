@@ -1,7 +1,7 @@
 albumentations
 addict
-cv2
-eniops
+opencv-python
+einops
 torch
 torchvision
 timm
@@ -15,5 +15,6 @@ matplotlib
 webcolors
 wandb
 yapf
+pillow
 
 
