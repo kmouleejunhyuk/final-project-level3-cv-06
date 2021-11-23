@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_auc_score
 
-def All_metric(pred, gt, n_classes):
+def All_metric(pred, gt, n_classes, type='train'):
     conf_mat=[]
     labels = [i for i in range(n_classes)]
     for label_col in range(len(labels)):
@@ -17,4 +17,7 @@ def All_metric(pred, gt, n_classes):
         except:
             metric.append(0)
         conf_mat.append(metric)
-    return np.mean(np.array(conf_mat), axis=0)
+    if type=='train':
+        return np.mean(np.array(conf_mat), axis=0)
+    else:
+        return conf_mat
