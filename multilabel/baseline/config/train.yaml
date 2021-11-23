@@ -20,8 +20,8 @@ eta_min: 0
 step_size: 10
 gamma: 0.1
 
-train_path: "../tmp/modified_tmp_dummy.json"
-val_path: "../tmp/modified_tmp_dummy.json"
+train_path: "/opt/ml/finalproject/data/tmp/modified_tmp_dummy.json"
+val_path: "/opt/ml/finalproject/data/tmp/modified_tmp_dummy.json"
 model_dir: "./runs"
 
 wandb: False
