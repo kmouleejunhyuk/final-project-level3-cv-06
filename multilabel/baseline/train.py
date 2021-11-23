@@ -265,7 +265,7 @@ def train(model_dir, config_train, thr=0.5):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--config_train', type=str, help='path of train configuration yaml file')
+    parser.add_argument('--config_train', default="config/train.yaml",type=str, help='path of train configuration yaml file')
 
     args = parser.parse_args()
 
