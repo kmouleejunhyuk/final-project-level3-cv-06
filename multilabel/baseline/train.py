@@ -97,10 +97,10 @@ def train(model_dir, config_train, thr=0.5):
 
     # dataset
     train_dataset = CustomDataLoader(
-        data_dir=config_train['val_path'], mode="train", transform=train_transform
+        image_dir=config_train['image_path'], data_dir=config_train['val_path'], mode="train", transform=train_transform
     )
     val_dataset = CustomDataLoader(
-        data_dir=config_train['val_path'], mode="val", transform=val_transform
+        image_dir=config_train['image_path'], data_dir=config_train['val_path'], mode="val", transform=val_transform
     )
 
     # data_loader

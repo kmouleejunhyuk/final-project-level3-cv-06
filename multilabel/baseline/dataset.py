@@ -17,8 +17,8 @@ from torch.utils.data import Dataset, DataLoader
 
 import copy
 
-train_path = '../tmp/modified_tmp_dummy.json' # json path
-dataset_path = '../tmp/sample_images_512' # image path
+# train_path = '../tmp/modified_tmp_dummy.json' # json path
+# dataset_path = '../tmp/sample_images_512' # image path
 
 # category_names = ['Background','Aerosol', 'Alcohol', 'Awl', 'Axe', 'Bat', 'Battery', 'Bullet', 'Firecracker', 'Gun', 'GunParts', 'Hammer',
 #  'HandCuffs', 'HDD', 'Knife', 'Laptop', 'Lighter', 'Liquid', 'Match', 'MetalPipe', 'NailClippers', 'PrtableGas', 'Saw', 'Scissors', 'Screwdriver',
@@ -51,12 +51,13 @@ class CustomDataLoader(Dataset):
     """
     coco format
     """
-    def __init__(self, data_dir, mode="train", transform=None, class_num=38):
+    def __init__(self, image_dir, data_dir, mode="train", transform=None, class_num=38):
         super().__init__()
         self.mode = mode
         self.transform = transform
         self.coco = COCO(data_dir)
         self.class_num = class_num
+        self.image_dir = image_dir
 
     def __getitem__(self, index):
         # dataset이 index되어 list처럼 동작
@@ -67,7 +68,7 @@ class CustomDataLoader(Dataset):
 
         # cv2를 활용하여 image 불러오기
         file_name = image_infos["file_name"]
-        images = cv2.imread(os.path.join(dataset_path, file_name))
+        images = cv2.imread(os.path.join(self.image_dir, file_name))
         images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB).astype(np.float32)
         images /= 255.0
 
