@@ -146,12 +146,13 @@ def train(model_dir, config_train, thr=0.5):
     step = 0
     for epoch in range(config_train['epochs']):
         # train loop
-        cal = 0
         model.train()
         loss_value = 0
         matches = 0
-        acc = 0
-        for idx, train_batch in enumerate(tqdm(train_loader)):
+        inter_count = 0
+        epoch_acc = 0 
+        # for idx, train_batch in enumerate(tqdm(train_loader)):
+        for idx, train_batch in enumerate(train_loader):
             inputs, labels = train_batch
             inputs = inputs.to(device)
             labels = labels.type(torch.FloatTensor).to(device)
@@ -167,30 +168,26 @@ def train(model_dir, config_train, thr=0.5):
             optimizer.step()
 
             loss_value += loss.item()
-            # print(pred, labels)
-            # print((pred == labels).sum())
             matches += (pred == labels.detach().cpu().numpy()).sum().item()
             if (idx + 1) % config_train['log_interval'] == 0:
-                cal+=1
+                inter_count += 1
                 train_loss = loss_value / config_train['log_interval']
-                train_acc = matches / config_train['batch_size'] / config_train['log_interval'] / n_classes
-                result = calculate_metrics(pred, labels.detach().cpu().numpy())
+                train_acc = matches / (config_train['batch_size'] * config_train['log_interval'] * n_classes)
+                epoch_acc += train_acc
+                # result = calculate_metrics(pred, labels.detach().cpu().numpy())
                 current_lr = get_lr(optimizer)
-                acc += train_acc / 100
+
                 print(
                     f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
-                    f"training loss {train_loss:4.4} || training accuracy {acc*100/cal:4.2%} || lr {current_lr}"
+                    f"training loss {train_loss:4.4} || training accuracy {train_acc:4.2%} || lr {current_lr}"
                 )
-                print(
-                  "micro f1: {:.3f} "
-                  "macro f1: {:.3f} "
-                  "samples f1: {:.3f}".format(
-                                              result['micro/f1'],
-                                              result['macro/f1'],
-                                              result['samples/f1']))
-
-                # logger.add_scalar("Train/loss", train_loss, epoch * len(train_loader) + idx)
-                # logger.add_scalar("Train/accuracy", train_acc, epoch * len(train_loader) + idx)
+                # print(
+                #   "micro f1: {:.3f} "
+                #   "macro f1: {:.3f} "
+                #   "samples f1: {:.3f}".format(
+                #                               result['micro/f1'],
+                #                               result['macro/f1'],
+                #                               result['samples/f1']))
 
                 # wandb log
                 if config_train['wandb'] == True:
@@ -209,9 +206,9 @@ def train(model_dir, config_train, thr=0.5):
             step += 1
 
         print(
-                f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
-                f"training loss {train_loss:4.4} || training accuracy {acc*100/cal:4.2%} || lr {current_lr}"
-            )
+            f"Final iter Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
+            f"training loss {epoch_acc/inter_count:4.4} || training accuracy {epoch_acc/inter_count:4.2%} || lr {current_lr}"
+        )
 
         scheduler.step()
 
