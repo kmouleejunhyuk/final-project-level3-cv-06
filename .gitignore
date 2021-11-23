@@ -7,3 +7,5 @@ data/train
 *.DS_Store
 *.json
 *.pkl
+tmp/
+runs/
