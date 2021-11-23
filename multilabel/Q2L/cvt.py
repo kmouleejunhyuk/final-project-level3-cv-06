@@ -15,7 +15,7 @@ from einops.layers.torch import Rearrange
 
 from timm.models.layers import DropPath, trunc_normal_
 
-from Q2L.utils.slconfig import SLConfig
+from utils.slconfig import SLConfig
 
 import torch
 import torch.nn as nn
