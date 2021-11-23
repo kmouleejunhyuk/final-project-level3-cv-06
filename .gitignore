@@ -5,3 +5,9 @@ data/eval
 data/train
 
 *.DS_Store
+
+*.ckpt
+saved_models/tensorboards/DenseNet/events.out.tfevents.densenet
+saved_models/tensorboards/GoogleNet/events.out.tfevents.googlenet
+saved_models/tensorboards/ResNet/events.out.tfevents.resnet
+saved_models/tensorboards/ResNetPreAct/events.out.tfevents.resnetpreact
