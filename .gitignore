@@ -5,3 +5,5 @@ data/eval
 data/train
 
 *.DS_Store
+*.json
+*.pkl

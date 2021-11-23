@@ -1,0 +1,29 @@
+seed: 1004
+epochs: 10
+batch_size: 2
+workers: 2
+model: "Q2L"
+lr: 1e-4
+criterion: "cross_entropy"
+log_interval: 20
+name: "exp"
+schedule: False
+
+optimizer: "adam"
+weight_decay: 1e-5
+momentum: 0.9
+amsgrad: False
+scheduler: "step"
+poly_exp: 1.0
+T_max: 10
+eta_min: 0
+step_size: 10
+gamma: 0.1
+
+train_path: "/opt/ml/finalproject/data/train/resample_modified_train_dummy.json"
+val_path: "/opt/ml/finalproject/data/eval/modified_eval_dummy.json"
+model_dir: "./runs"
+
+wandb: False
+entity: cider6
+project: "test"
