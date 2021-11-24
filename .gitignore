@@ -9,3 +9,9 @@ data/train
 *.pkl
 tmp/
 runs/
+*.out
+
+
+# personal ignore root
+personal.ipynb
+

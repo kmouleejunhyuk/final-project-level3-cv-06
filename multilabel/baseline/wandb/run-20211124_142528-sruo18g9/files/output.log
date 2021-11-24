@@ -1,0 +1,47 @@
+pytorch version: 1.8.0
+GPU 사용 가능 여부: True
+loading annotations into memory...
+Done (t=0.13s)
+creating index...
+index created!
+loading annotations into memory...
+Done (t=0.13s)
+creating index...
+index created!
+Epoch[0/50](20/116) || training loss 0.1286 || training accuracy 96.14% || lr 0.0001 || training recall 0.14 || training precision 0.077 || training AUC 0.088
+Epoch[0/50](40/116) || training loss 0.1108 || training accuracy 96.20% || lr 0.0001 || training recall 0.14 || training precision 0.13 || training AUC 0.12
+Epoch[0/50](60/116) || training loss 0.1036 || training accuracy 96.43% || lr 0.0001 || training recall 0.24 || training precision 0.15 || training AUC 0.17
+Epoch[0/50](80/116) || training loss 0.07205 || training accuracy 97.78% || lr 0.0001 || training recall 0.32 || training precision 0.29 || training AUC 0.3
+Epoch[0/50](100/116) || training loss 0.07784 || training accuracy 97.25% || lr 0.0001 || training recall 0.36 || training precision 0.26 || training AUC 0.29
+0 Epoch's overall result
+Epoch[0/50](116/116) || training loss 0.119 || training accuracy 96.12% ||training recall 0.23 || training precision 0.18 || training AUC 0.19
+Calculating validation results...
+New best model for val accuracy : 95.48%! saving the best model..
+[Val] acc : 95.48%, loss: 0.27 || best acc : 95.48%, best loss: 0.27
+Epoch[1/50](20/116) || training loss 0.05948 || training accuracy 98.13% || lr 9.8e-05 || training recall 0.49 || training precision 0.41 || training AUC 0.43
+Epoch[1/50](40/116) || training loss 0.04164 || training accuracy 98.48% || lr 9.8e-05 || training recall 0.47 || training precision 0.43 || training AUC 0.44
+Epoch[1/50](60/116) || training loss 0.04244 || training accuracy 98.65% || lr 9.8e-05 || training recall 0.58 || training precision 0.53 || training AUC 0.54
+Epoch[1/50](80/116) || training loss 0.04357 || training accuracy 98.42% || lr 9.8e-05 || training recall 0.48 || training precision 0.42 || training AUC 0.43
+Epoch[1/50](100/116) || training loss 0.04333 || training accuracy 98.60% || lr 9.8e-05 || training recall 0.5 || training precision 0.47 || training AUC 0.47
+1 Epoch's overall result
+Epoch[1/50](116/116) || training loss 0.04576 || training accuracy 98.50% ||training recall 0.52 || training precision 0.45 || training AUC 0.47
+Calculating validation results...
+[Val] acc : 95.43%, loss: 0.23 || best acc : 95.48%, best loss: 0.23
+Epoch[2/50](20/116) || training loss 0.02267 || training accuracy 99.24% || lr 9.6e-05 || training recall 0.55 || training precision 0.49 || training AUC 0.51
+Epoch[2/50](40/116) || training loss 0.01681 || training accuracy 99.71% || lr 9.6e-05 || training recall 0.58 || training precision 0.56 || training AUC 0.57
+Traceback (most recent call last):
+  File "train.py", line 268, in <module>
+    train(model_dir, config_train)
+  File "train.py", line 152, in train
+    optimizer.step()
+  File "/opt/conda/envs/final/lib/python3.8/site-packages/torch/optim/lr_scheduler.py", line 65, in wrapper
+    return wrapped(*args, **kwargs)
+  File "/opt/conda/envs/final/lib/python3.8/site-packages/torch/optim/optimizer.py", line 89, in wrapper
+    return func(*args, **kwargs)
+  File "/opt/conda/envs/final/lib/python3.8/site-packages/torch/autograd/grad_mode.py", line 27, in decorate_context
+    return func(*args, **kwargs)
+  File "/opt/conda/envs/final/lib/python3.8/site-packages/torch/optim/adam.py", line 108, in step
+    F.adam(params_with_grad,
+  File "/opt/conda/envs/final/lib/python3.8/site-packages/torch/optim/_functional.py", line 84, in adam
+    exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
+KeyboardInterrupt

@@ -1,0 +1,27 @@
+{
+    "os": "Linux-4.4.0-59-generic-x86_64-with-glibc2.17",
+    "python": "3.8.12",
+    "heartbeatAt": "2021-11-24T14:25:30.569345",
+    "startedAt": "2021-11-24T14:25:28.788280",
+    "docker": null,
+    "gpu": "Tesla V100-PCIE-32GB",
+    "gpu_count": 1,
+    "cpu_count": 8,
+    "cuda": null,
+    "args": [
+        "--config_train",
+        "config/train_alldata.yaml"
+    ],
+    "state": "running",
+    "program": "train.py",
+    "codePath": "multilabel/baseline/train.py",
+    "git": {
+        "remote": "https://github.com/boostcampaitech2/final-project-level3-cv-06.git",
+        "commit": "1a51add1d0e37bfc569f1b40db27dab5306a7039"
+    },
+    "email": "ann9902@gmail.com",
+    "root": "/opt/ml/finalproject",
+    "host": "5566ff786830",
+    "username": "root",
+    "executable": "/opt/conda/envs/final/bin/python"
+}

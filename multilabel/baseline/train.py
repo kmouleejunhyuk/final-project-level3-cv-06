@@ -83,10 +83,10 @@ def train(model_dir, config_train, thr=0.5):
 
     # dataset
     train_dataset = CustomDataLoader(
-        data_dir=config_train['val_path'], mode="train", transform=train_transform
+        image_dir=config_train['image_path'], data_dir=config_train['train_path'], mode="train", transform=train_transform
     )
-    val_dataset = CustomDataLoader(
-        data_dir=config_train['val_path'], mode="val", transform=val_transform
+    train_dataset = CustomDataLoader(
+    image_dir=config_train['image_path'], data_dir=config_train['val_path'], mode="val", transform=val_transform
     )
 
     # data_loader
@@ -181,13 +181,13 @@ def train(model_dir, config_train, thr=0.5):
                     step=step,
                 )
             step += 1
-
-        print(f"{epoch} Epoch's overall result")
-        print(
-            f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
-            f"training loss {epoch_loss/len(train_loader):4.4} || training accuracy {epoch_metric[0]/len(train_loader):4.2%} ||"
-            f"training recall {epoch_metric[1]/len(train_loader):.2} || training precision {epoch_metric[2]/len(train_loader):.2} || training AUC {epoch_metric[3]/len(train_loader):.2}"
-            )
+            if (idx+1)==len(train_loader):
+                print(f"{epoch} Epoch's overall result")
+                print(
+                    f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
+                    f"training loss {epoch_loss/len(train_loader):4.4} || training accuracy {epoch_metric[0]/len(train_loader):4.2%} ||"
+                    f"training recall {epoch_metric[1]/len(train_loader):.2} || training precision {epoch_metric[2]/len(train_loader):.2} || training AUC {epoch_metric[3]/len(train_loader):.2}"
+                    )
         scheduler.step()
 
         # val loop
