@@ -17,6 +17,7 @@ from effdet.efficientdet import HeadNet
 
 
 # https://github.com/rwightman/efficientdet-pytorch
+# tutorial : https://dreaming-lee.notion.site/EfficientDet-dc52459a2e5745bd984164012a4cb636
 def get_net():
 
     config = get_efficientdet_config('tf_efficientdet_d5')
@@ -34,7 +35,7 @@ def get_net():
 
 
 class efficientdet():
-    def __init__():
+    def __init__(self,**kwargs):
         pass
         
     def forward(self, x):

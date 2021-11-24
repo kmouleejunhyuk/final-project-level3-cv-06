@@ -1,9 +1,9 @@
 import torch.nn as nn
 from types import SimpleNamespace
-from models.models import act_fn_by_name
+#from models.jiyou import act_fn_by_name
 
 # 해결 필요 
-resnet_blocks_by_name = {"ResNetBlock": ResNetBlock, "PreActResNetBlock": PreActResNetBlock}
+act_fn_by_name = {"tanh": nn.Tanh, "relu": nn.ReLU, "leakyrelu": nn.LeakyReLU, "gelu": nn.GELU}
 
 class ResNetBlock(nn.Module):
     def __init__(self, c_in, act_fn, subsample=False, c_out=-1):
@@ -78,7 +78,7 @@ class PreActResNetBlock(nn.Module):
         out = z + x
         return out
 
-
+resnet_blocks_by_name = {"ResNetBlock": ResNetBlock, "PreActResNetBlock": PreActResNetBlock}
 
 class ResNet(nn.Module):
     def __init__(

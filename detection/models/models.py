@@ -2,9 +2,9 @@ from pytorch_lightning import LightningModule
 import pytorch_lightning as pl
 import torch.nn as nn
 import torch.optim as optim
-from resnet import ResNet
-
-model_dict = {"ResNet" : ResNet}
+from models.resnet import ResNet
+from models.efficientdet import efficientdet
+model_dict = {"ResNet" : ResNet, "Efficientdet" : efficientdet}
 act_fn_by_name = {"tanh": nn.Tanh, "relu": nn.ReLU, "leakyrelu": nn.LeakyReLU, "gelu": nn.GELU}
 
 def create_model(model_name, model_hparams):
@@ -53,7 +53,6 @@ class LitModel(LightningModule):
         preds = self.model(imgs)
         loss = self.loss_module(preds, labels)
         acc = (preds.argmax(dim=-1) == labels).float().mean()
-
         # Logs the accuracy per epoch to tensorboard (weighted average over batches)
         self.log("train_acc", acc, on_step=False, on_epoch=True)
         self.log("train_loss", loss)

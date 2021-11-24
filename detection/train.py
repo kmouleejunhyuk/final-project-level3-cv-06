@@ -54,29 +54,38 @@ def train_model(model_name, save_name=None, **kwargs):
 
     # Check whether pretrained model exists. If yes, load it and skip training
     pretrained_filename = os.path.join(CHECKPOINT_PATH, save_name + ".ckpt")
-    if os.path.isfile(pretrained_filename):
-        print(f"Found pretrained model at {pretrained_filename}, loading...")
-        # Automatically loads the model with the saved hyperparameters
-        model = LitModel.load_from_checkpoint(pretrained_filename)
-    else:
-        pl.seed_everything(42)  # To be reproducable
-        model = LitModel(model_name=model_name, **kwargs)
-        trainer.fit(model, train_loader, val_loader)
-        model = LitModel.load_from_checkpoint(
-            trainer.checkpoint_callback.best_model_path
-        )  # Load best checkpoint after training
+    # if os.path.isfile(pretrained_filename):
+    #     print(f"Found pretrained model at {pretrained_filename}, loading...")
+    #     # Automatically loads the model with the saved hyperparameters
+    #     model = LitModel.load_from_checkpoint(pretrained_filename)
+    # else:
+    pl.seed_everything(42)  # To be reproducable
+    model = LitModel(model_name=model_name, **kwargs)
+    print(model)
+    print(len(train_loader))
+    trainer.fit(model, train_loader, val_loader)
+    model = LitModel.load_from_checkpoint(
+        trainer.checkpoint_callback.best_model_path
+    )  # Load best checkpoint after training
 
     # Test best model on validation and test set
-    val_result = trainer.test(model, test_dataloaders=val_loader, verbose=False)
+    #val_result = trainer.test(model, test_dataloaders=val_loader, verbose=False)
     # test_result = trainer.test(model, test_dataloaders=test_loader, verbose=False)
-    test_result = trainer.test(model, test_dataloaders=val_loader, verbose=False)
+    #test_result = trainer.test(model, test_dataloaders=val_loader, verbose=False)
     
-    result = {"test": test_result[0]["test_acc"], "val": val_result[0]["test_acc"]}
+    # result = {"test": test_result[0]["test_acc"], "val": val_result[0]["test_acc"]}
+    result = {"test": 0, "val": 0}
 
     return model, result
 
-resnet_model, resnet_results = train_model(
-    model_name="ResNet",
+# resnet_model, resnet_results = train_model(
+#     model_name="ResNet",
+#     model_hparams={"num_classes": 39, "c_hidden": [16, 32, 64], "num_blocks": [3, 3, 3], "act_fn_name": "relu"},
+#     optimizer_name="SGD",
+#     optimizer_hparams={"lr": 0.1, "momentum": 0.9, "weight_decay": 1e-4},
+# )
+effi_model, effi_results = train_model(
+    model_name="Efficientdet",
     model_hparams={"num_classes": 39, "c_hidden": [16, 32, 64], "num_blocks": [3, 3, 3], "act_fn_name": "relu"},
     optimizer_name="SGD",
     optimizer_hparams={"lr": 0.1, "momentum": 0.9, "weight_decay": 1e-4},

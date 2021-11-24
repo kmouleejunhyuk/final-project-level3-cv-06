@@ -8,6 +8,7 @@ from torch.utils.data import Dataset
 
 
 def read_img(img_path):
+    print(img_path)
     img = cv2.imread(img_path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32)
     img /= 255.0
@@ -87,14 +88,22 @@ class CustomDataset(Dataset):
         return len(self.coco.getImgIds())
 
 
+# def train_transform():
+#     return A.Compose([
+#         ToTensorV2()
+#     ], bbox_params={'format': 'pascal_voc', 'label_fields':['labels']})
 def train_transform():
     return A.Compose([
+        A.PadIfNeeded(min_height=1500, min_width=1500, border_mode=cv2.BORDER_CONSTANT),
         ToTensorV2()
     ], bbox_params={'format': 'pascal_voc', 'label_fields':['labels']})
 
-
+# def valid_transform():
+#     return A.Compose([
+#         ToTensorV2()
+#     ], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})
 def valid_transform():
     return A.Compose([
+        A.PadIfNeeded(min_height=1500, min_width=1500, border_mode=cv2.BORDER_CONSTANT),
         ToTensorV2()
-    ], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})
-
+    ], bbox_params={'format': 'pascal_voc', 'label_fields':['labels']})

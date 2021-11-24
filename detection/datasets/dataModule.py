@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 
 class CustomDataModule(LightningDataModule):
     def __init__(self, batch_size = 4):
+        super().__init__()
         self.batch_size = batch_size
     
     def prepare_data(self):
@@ -11,16 +12,16 @@ class CustomDataModule(LightningDataModule):
 
     # https://wandb.ai/wandb_fc/korean/reports/Weights-Biases-Pytorch-Lightning---VmlldzozNzAxOTg
     def setup(self, stage=None):
-
         # we set up only relevant datasets when stage is specified (automatically set by Pytorch-Lightning)
         if stage == "train" or stage == None:
-            self.trainDataset = CustomDataset(annotation="/opt/ml/finalproject/data/train/modified_train_dummy.json", 
+            self.trainDataset = CustomDataset(annotation="/opt/ml/finalproject/data/train/sample_modified_train_dummy.json", 
                                                         data_dir="/opt/ml/finalproject/data/train/", mode="train", transforms=train_transform())
         if stage == "val" or stage == None:
-            self.valDataset = CustomDataset(annotation="/opt/ml/finalproject/data/eval/modified_eval_dummy.json", 
-                                                        data_dir="/opt/ml/finalproject/data/eval/", mode="val", transforms=valid_transform())
+            self.valDataset = CustomDataset(annotation="/opt/ml/finalproject/data/train/sample_modified_train_dummy.json", 
+                                                        data_dir="/opt/ml/finalproject/data/train/", mode="val", transforms=valid_transform())
     
     def train_dataloader(self):
+        print(len(self.trainDataset))
         return DataLoader(self.trainDataset, batch_size = self.batch_size)
     def val_dataloader(self):
         return DataLoader(self.valDataset, batch_size = self.batch_size)
