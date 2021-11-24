@@ -21,7 +21,10 @@ from dataset import (
 )
 from losses import create_criterion
 from optim_sche import get_opt_sche
-from metrics import All_metric
+
+# from utils.utils import add_hist, grid_image, label_accuracy_score
+from sklearn.metrics import precision_score, recall_score, f1_score
+
 
 
 def seed_everything(seed):
@@ -57,6 +60,19 @@ def increment_path(path, exist_ok=False):
         return f"{path}{n}"
 
 
+def calculate_metrics(pred, target):
+    return {'micro/precision': precision_score(y_true=target, y_pred=pred, average='micro'),
+            'micro/recall': recall_score(y_true=target, y_pred=pred, average='micro'),
+            'micro/f1': f1_score(y_true=target, y_pred=pred, average='micro'),
+            'macro/precision': precision_score(y_true=target, y_pred=pred, average='macro'),
+            'macro/recall': recall_score(y_true=target, y_pred=pred, average='macro'),
+            'macro/f1': f1_score(y_true=target, y_pred=pred, average='macro'),
+            'samples/precision': precision_score(y_true=target, y_pred=pred, average='samples'),
+            'samples/recall': recall_score(y_true=target, y_pred=pred, average='samples'),
+            'samples/f1': f1_score(y_true=target, y_pred=pred, average='samples'),
+            }
+
+
 def createDirectory(save_dir):
     try:
         if not os.path.exists(save_dir):
@@ -83,10 +99,10 @@ def train(model_dir, config_train, thr=0.5):
 
     # dataset
     train_dataset = CustomDataLoader(
-        image_dir=config_train['image_path'], data_dir=config_train['train_path'], mode="train", transform=train_transform
+        data_dir=config_train['val_path'], mode="train", transform=train_transform
     )
-    train_dataset = CustomDataLoader(
-    image_dir=config_train['image_path'], data_dir=config_train['val_path'], mode="val", transform=val_transform
+    val_dataset = CustomDataLoader(
+        data_dir=config_train['val_path'], mode="val", transform=val_transform
     )
 
     # data_loader
@@ -123,6 +139,8 @@ def train(model_dir, config_train, thr=0.5):
     # optimizer & scheduler
     optimizer, scheduler = get_opt_sche(config_train, model)
 
+    # with open(os.path.join(save_dir, "config.json"), "w", encoding="utf-8") as f:
+    #     json.dump(vars(config_train), f, ensure_ascii=False, indent=4)
 
     # start train
     best_val_acc = 0 
@@ -130,73 +148,82 @@ def train(model_dir, config_train, thr=0.5):
     step = 0
     for epoch in range(config_train['epochs']):
         # train loop
+        cal = 0
         model.train()
-        epoch_loss = 0
-        epoch_metric = [0, 0, 0, 0]
-
-        # for idx, train_batch in enumerate(tqdm(train_loader)):
-        for idx, train_batch in enumerate(train_loader):
+        loss_value = 0
+        matches = 0
+        acc = 0
+        for idx, train_batch in enumerate(tqdm(train_loader)):
             inputs, labels = train_batch
             inputs = inputs.to(device)
-            labels = labels.type(torch.FloatTensor)
-            labels = labels.to(device)
+            labels = labels.type(torch.FloatTensor).to(device)
 
             optimizer.zero_grad()
 
             outs = model(inputs)
-            # pred = np.array(outs.detach().cpu().numpy() > 0.5, dtype = float)
-            pred = torch.where(outs>thr, 1., 0.).detach()
-            loss = criterion(outs, labels)
+            # print(outs.shape, type(outs))
+            pred = np.array(outs.detach().cpu().numpy() > 0.5, dtype = float)
+            loss = criterion(outs, labels.type(torch.float))
 
             loss.backward()
             optimizer.step()
-            
-            # acc, recall, precision, auc
-            pred, labels = pred.detach().cpu().numpy(), labels.detach().cpu().numpy()
-            iter_metric = All_metric(pred, labels, n_classes)
-            epoch_metric = [old+new for old, new in zip(epoch_metric, iter_metric)] 
 
-            epoch_loss += loss.item()
-            current_lr = get_lr(optimizer)
-
+            loss_value += loss.item()
+            # print(pred, labels)
+            # print((pred == labels).sum())
+            matches += (pred == labels.detach().cpu().numpy()).sum().item()
             if (idx + 1) % config_train['log_interval'] == 0:
+                cal+=1
+                train_loss = loss_value / config_train['log_interval']
+                train_acc = matches / config_train['batch_size'] / config_train['log_interval'] / n_classes
+                result = calculate_metrics(pred, labels.detach().cpu().numpy())
+                current_lr = get_lr(optimizer)
+                acc += train_acc / 100
                 print(
                     f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
-                    f"training loss {loss:4.4} || training accuracy {iter_metric[0]:4.2%} || lr {current_lr} || "
-                    f"training recall {iter_metric[1]:.2} || training precision {iter_metric[2]:.2} || training AUC {iter_metric[3]:.2}"
-                    )
-
-            # wandb log
-            if config_train['wandb'] == True:
-                wandb.log(
-                    {
-                        "Train/Train loss": round(loss.item(), 4),
-                        "Train/Train acc": round(iter_metric[0], 4),
-                        "Train/Train recall" : round(iter_metric[1], 4),
-                        "Train/Train precision" : round(iter_metric[2], 4),
-                        "Train/Train AUC" : round(iter_metric[3], 4),
-                        "learning_rate": current_lr,
-                        "epoch" : epoch+1
-                    },
-                    step=step,
+                    f"training loss {train_loss:4.4} || training accuracy {acc*100/cal:4.2%} || lr {current_lr}"
                 )
-            step += 1
-            if (idx+1)==len(train_loader):
-                print(f"{epoch} Epoch's overall result")
                 print(
-                    f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
-                    f"training loss {epoch_loss/len(train_loader):4.4} || training accuracy {epoch_metric[0]/len(train_loader):4.2%} ||"
-                    f"training recall {epoch_metric[1]/len(train_loader):.2} || training precision {epoch_metric[2]/len(train_loader):.2} || training AUC {epoch_metric[3]/len(train_loader):.2}"
+                  "micro f1: {:.3f} "
+                  "macro f1: {:.3f} "
+                  "samples f1: {:.3f}".format(
+                                              result['micro/f1'],
+                                              result['macro/f1'],
+                                              result['samples/f1']))
+
+                # logger.add_scalar("Train/loss", train_loss, epoch * len(train_loader) + idx)
+                # logger.add_scalar("Train/accuracy", train_acc, epoch * len(train_loader) + idx)
+
+                # wandb log
+                if config_train['wandb'] == True:
+                    wandb.log(
+                        {
+                            # "Media/train predict images": figure,
+                            "Train/Train loss": round(train_loss, 4),
+                            "Train/Train acc": round(result['micro/f1'], 4),
+                            "learning_rate": current_lr,
+                            "epoch" : epoch+1
+                        },
+                        step=step,
                     )
+                loss_value = 0
+                matches = 0
+            step += 1
+
+        print(
+                f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
+                f"training loss {train_loss:4.4} || training accuracy {acc*100/cal:4.2%} || lr {current_lr}"
+            )
+
         scheduler.step()
 
         # val loop
         with torch.no_grad():
             print("Calculating validation results...")
             model.eval()
-            val_epoch_loss = 0
-            val_epoch_metric = [0, 0, 0, 0]
-
+            val_loss = 0
+            val_acc = 0
+            figure = None
             for val_batch in val_loader:
                 inputs, labels = val_batch
                 inputs = inputs.to(device)
@@ -204,39 +231,32 @@ def train(model_dir, config_train, thr=0.5):
                 labels = labels.to(device)
 
                 outs = model(inputs)
-                pred = torch.where(outs>thr, 1., 0.).detach()
+                pred = np.array(outs.detach().cpu().numpy() > 0.5, dtype = float)
 
-                loss = criterion(outs, labels).item()
-                
-                val_epoch_loss += loss
+                loss_item = criterion(outs, labels).item()
+                acc_item = (labels.detach().cpu().numpy() == pred).sum().item()
+                val_loss += loss_item
+                val_acc += acc_item
 
-                # acc, recall, precision, auc
-                pred, labels = pred.detach().cpu().numpy(), labels.detach().cpu().numpy()
-                val_iter_metric = All_metric(pred, labels, n_classes)
-                val_epoch_metric = [old+new for old, new in zip(val_epoch_metric, val_iter_metric)] 
-
-            val_epoch_loss /= len(val_loader)
-            val_epoch_metric = [i/len(val_loader) for i in val_epoch_metric]
-
-            best_val_loss = min(best_val_loss, val_epoch_loss)
-            if val_epoch_metric[0] > best_val_acc:
-                print(f"New best model for val accuracy : {val_epoch_metric[0]:4.2%}! saving the best model..")
-                torch.save(model.state_dict(), f"{save_dir}/best_{val_epoch_metric[0]:4.2%}.pth")
-                best_val_acc = val_epoch_metric[0]
-            torch.save(model.state_dict(), f"{save_dir}/last_epoch{epoch}.pth")
+            val_loss = val_loss / len(val_loader)
+            val_acc = val_acc / len(val_dataset) / n_classes
+            best_val_loss = min(best_val_loss, val_loss)
+            if val_acc > best_val_acc:
+                print(f"New best model for val accuracy : {val_acc:4.2%}! saving the best model..")
+                torch.save(model.state_dict(), f"{save_dir}/best.pth")
+                best_val_acc = val_acc
+            torch.save(model.state_dict(), f"{save_dir}/last.pth")
             print(
-                f"[Val] acc : {val_epoch_metric[0]:4.2%}, loss: {val_epoch_loss:4.2} || "
+                f"[Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2} || "
                 f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}"
             )
             # wandb log
             if config_train['wandb'] == True:
                 wandb.log(
                     {
-                        "Valid/Valid loss": round(val_epoch_loss, 4),
-                        "Valid/Valid acc": round(val_epoch_metric[0], 4),
-                        "Valid/Valid recall": round(val_epoch_metric[1], 4),
-                        "Valid/Valid precision": round(val_epoch_metric[2], 4),
-                        "Valid/Valid AUC": round(val_epoch_metric[3], 4),
+                        # "Media/train predict images": figure,
+                        "Valid/Valid loss": round(val_loss, 4),
+                        "Valid/Valid acc": round(val_acc, 4),
                         "epoch": epoch+1
                     },
                     step=step,
@@ -247,7 +267,7 @@ def train(model_dir, config_train, thr=0.5):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--config_train', type=str, help='path of train configuration yaml file')
+    parser.add_argument('--config_train', type=str, default = '/opt/ml/finalproject/multilabel/Q2L/configs/train.yaml', help='path of train configuration yaml file')
 
     args = parser.parse_args()
 

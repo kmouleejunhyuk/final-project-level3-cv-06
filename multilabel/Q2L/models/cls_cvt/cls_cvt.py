@@ -1,4 +1,3 @@
-#implment from Q2L
 from functools import partial
 from itertools import repeat
 import collections.abc as container_abcs
@@ -9,17 +8,15 @@ from collections import OrderedDict
 
 import numpy as np
 import scipy
-
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from einops import rearrange
 from einops.layers.torch import Rearrange
 
 from timm.models.layers import DropPath, trunc_normal_
 
 from utils.slconfig import SLConfig
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 __all__ = ['build_CvT']
 
@@ -340,6 +337,7 @@ class Block(nn.Module):
 
 class ConvEmbed(nn.Module):
     """ Image to Conv Embedding
+
     """
 
     def __init__(self,
@@ -665,7 +663,6 @@ def get_cls_model(config, **kwargs):
 
     return msvit
 
-
 def build_CvT(modelname, num_classes):
     name2cfg = {
         'CvT_w24': "cvt-w24-384x384.yaml",
@@ -675,7 +672,7 @@ def build_CvT(modelname, num_classes):
         'CvT_21_384': "cvt-21-384x384.yaml",
     }
     assert modelname in name2cfg
-    cfg = SLConfig.fromfile(os.path.join(os.path.dirname(__file__), 'configs', name2cfg[modelname]))
+    cfg = SLConfig.fromfile(os.path.join(os.path.dirname(__file__), name2cfg[modelname]))
     cfg.MODEL.NUM_CLASSES = num_classes
     cfg.MODEL.INIT_WEIGHTS = False
     return get_cls_model(cfg)

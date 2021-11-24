@@ -5,10 +5,13 @@ data/eval
 data/train
 
 *.DS_Store
+*.json
+*.pkl
 tmp/
 runs/
+*.out
+
 
 # personal ignore root
 personal.ipynb
 
-*.out

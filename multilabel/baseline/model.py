@@ -18,6 +18,3 @@ class ResNet101(nn.Module):
         return output
 
 
-
-
-

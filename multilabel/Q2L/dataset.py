@@ -1,20 +1,29 @@
 import os
 import numpy as np
+import pandas as pd
+
+import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
+import webcolors
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import cv2
 import torch
+# from albumentations.pytorch import ToTensorV2
 
 from pycocotools.coco import COCO
 from torch.utils.data import Dataset, DataLoader
 
+import copy
 
-category_names = ['Aerosol', 'Alcohol', 'Awl', 'Axe', 'Bat', 'Battery', 'Bullet', 'Firecracker', 'Gun', 'GunParts', 'Hammer',
- 'HandCuffs', 'HDD', 'Knife', 'Laptop', 'Lighter', 'Liquid', 'Match', 'MetalPipe', 'NailClippers', 'PrtableGas', 'Saw', 'Scissors', 'Screwdriver',
- 'SmartPhone', 'SolidFuel', 'Spanner', 'SSD', 'SupplymentaryBattery', 'TabletPC', 'Thinner', 'USB', 'ZippoOil', 'Plier', 'Chisel', 'Electronic cigarettes',
- 'Electronic cigarettes(Liquid)', 'Throwing Knife']
+train_path = '../tmp/modified_tmp_dummy.json' # json path
+dataset_path = '../tmp/sample_images_512' # image path
 
+# category_names = ['Background','Aerosol', 'Alcohol', 'Awl', 'Axe', 'Bat', 'Battery', 'Bullet', 'Firecracker', 'Gun', 'GunParts', 'Hammer',
+#  'HandCuffs', 'HDD', 'Knife', 'Laptop', 'Lighter', 'Liquid', 'Match', 'MetalPipe', 'NailClippers', 'PrtableGas', 'Saw', 'Scissors', 'Screwdriver',
+#  'SmartPhone', 'SolidFuel', 'Spanner', 'SSD', 'SupplymentaryBattery', 'TabletPC', 'Thinner', 'USB', 'ZippoOil', 'Plier', 'Chisel', 'Electronic cigarettes',
+#  'Electronic cigarettes(Liquid)', 'Throwing Knife']
 class_num = 38
 
 def make_cls_id(origin_id):
@@ -57,15 +66,8 @@ class CustomDataLoader(Dataset):
         anns = self.coco.loadAnns(ann_ids)
 
         # cv2를 활용하여 image 불러오기
-        file_path = image_infos["path"]
         file_name = image_infos["file_name"]
-
-        # path = self.image_dir + 'train' + file_path + file_name
-        path = os.path.join(self.image_dir, 'train', file_path[1:], file_name) if self.mode == "train" \
-            else os.path.join(self.image_dir, 'train', file_path[1:], file_name) if self.mode=="val" \
-            else os.path.join(self.image_dir, 'eval', file_path[1:], file_name)
-
-        images = cv2.imread(path)
+        images = cv2.imread(os.path.join(dataset_path, file_name))
         images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB).astype(np.float32)
         images /= 255.0
 
@@ -96,19 +98,16 @@ class CustomDataLoader(Dataset):
 #     return tuple(zip(*batch))
 
 train_transform = A.Compose([
-    A.Resize(512, 512),
     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
     ToTensorV2()
 ])
 
 val_transform = A.Compose([
-    A.Resize(512, 512),
     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
     ToTensorV2()
 ])
 
 test_transform = A.Compose([
-    A.Resize(512, 512),
     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
     ToTensorV2()
 ])
