@@ -15,7 +15,7 @@ def create_model(model_name, model_hparams):
 
 # https://pytorch-lightning.readthedocs.io/en/latest/notebooks/course_UvA-DL/04-inception-resnet-densenet.html
 class LitModel(LightningModule):
-    def __init__(self, model_name, model_hparams, optim_name, optim_hparams):
+    def __init__(self, model_name, model_hparams, optimizer_name, optimizer_hparams):
         """
         Inputs:
             model_name - Name of the model/CNN to run. Used for creating the model (see function below)
@@ -36,10 +36,10 @@ class LitModel(LightningModule):
         return self.model(imgs)
 
     def configure_optimizers(self):
-        if self.hparams.optim_name == "Adam":
-            optimizer = optim.AdamW(self.parameters(), **self.hparams.optim_hparams)
+        if self.hparams.optimizer_name == "Adam":
+            optimizer = optim.AdamW(self.parameters(), **self.hparams.optimizer_hparams)
         elif self.hparams.optimizer_name == "SGD":
-            optimizer = optim.SGD(self.parameters(), **self.hparams.optim_hparams)
+            optimizer = optim.SGD(self.parameters(), **self.hparams.optimizer_hparams)
         else:
             assert False, f'Unknown optimizer: "{self.hparams.optimizer_name}"'
         

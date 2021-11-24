@@ -49,8 +49,8 @@ def train_model(model_name, save_name=None, **kwargs):
         ],  # Log learning rate every epoch
         progress_bar_refresh_rate=1,
     )  # In case your notebook crashes due to the progress bar, consider increasing the refresh rate
-    trainer.logger._log_graph = True  # If True, we plot the computation graph in tensorboard
-    trainer.logger._default_hp_metric = None  # Optional logging argument that we don't need
+    #trainer.logger._log_graph = True  # If True, we plot the computation graph in tensorboard
+    #trainer.logger._default_hp_metric = None  # Optional logging argument that we don't need
 
     # Check whether pretrained model exists. If yes, load it and skip training
     pretrained_filename = os.path.join(CHECKPOINT_PATH, save_name + ".ckpt")
