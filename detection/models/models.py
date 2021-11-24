@@ -15,7 +15,7 @@ def create_model(model_name, model_hparams):
 
 # https://pytorch-lightning.readthedocs.io/en/latest/notebooks/course_UvA-DL/04-inception-resnet-densenet.html
 class LitModel(LightningModule):
-    def __init__(self, model_name, model_hparams, optim_name, optim_hparams, n_classes=10):
+    def __init__(self, model_name, model_hparams, optim_name, optim_hparams):
         """
         Inputs:
             model_name - Name of the model/CNN to run. Used for creating the model (see function below)
