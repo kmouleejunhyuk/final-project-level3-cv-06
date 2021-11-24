@@ -1,6 +1,11 @@
 import torch.nn as nn
+from types import SimpleNamespace
+from resnet import ResNetBlock, PreActResNetBlock
 
 resnet_blocks_by_name = {"ResNetBlock": ResNetBlock, "PreActResNetBlock": PreActResNetBlock}
+
+# 이거 어디다 둘까요 ?
+act_fn_by_name = {"tanh": nn.Tanh, "relu": nn.ReLU, "leakyrelu": nn.LeakyReLU, "gelu": nn.GELU}
 
 class ResNetBlock(nn.Module):
     def __init__(self, c_in, act_fn, subsample=False, c_out=-1):
