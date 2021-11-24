@@ -1,17 +1,30 @@
 import torch
 import numpy as np
 from sklearn import metrics
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 def accuracy(pred: torch.Tensor, ground_truth: torch.Tensor) -> float:
     return torch.mean((pred == ground_truth).to(float)).item()
 
+def calculate_metrics(pred, target):
+    pred, target = pred.detach().cpu().numpy(), target.detach().cpu().numpy()
+    
+    return {'micro/precision': precision_score(y_true=target, y_pred=pred, average='micro'),
+            'micro/recall': recall_score(y_true=target, y_pred=pred, average='micro'),
+            'micro/f1': f1_score(y_true=target, y_pred=pred, average='micro'),
+            'macro/precision': precision_score(y_true=target, y_pred=pred, average='macro'),
+            'macro/recall': recall_score(y_true=target, y_pred=pred, average='macro'),
+            'macro/f1': f1_score(y_true=target, y_pred=pred, average='macro'),
+            'samples/precision': precision_score(y_true=target, y_pred=pred, average='samples'),
+            'samples/recall': recall_score(y_true=target, y_pred=pred, average='samples'),
+            'samples/f1': f1_score(y_true=target, y_pred=pred, average='samples'),
+            }
 
 def overall(pred: torch.Tensor, ground_truth: torch.Tensor, option , label_count: int = 39, thr = 0.5) -> float:
     # pred must be soft labels, ground truth must be hard
     optionlist = ['OR', 'OP', 'CP', 'CR', 'OF1', 'CF1']
     assert pred.shape == ground_truth.shape
     assert option in optionlist
-    img_count = pred.shape[0]
 
     Mc, Mp, Mg = [], [], []
     for i in range(pred.shape[-1]):
@@ -38,10 +51,10 @@ def overall(pred: torch.Tensor, ground_truth: torch.Tensor, option , label_count
     CF1 = 2*CP*CR/(CP+CR)
 
     optiondict = [(name, x) for name, x in zip(optionlist, [OR, OP, CP, CR, OF1, CF1])]
-    return optiondict[option]
+    return optiondict
 
 
 def AUC(pred: torch.Tensor, ground_truth: torch.Tensor) -> float:
-    pred, ground_truth = pred.numpy(), ground_truth.numpy()
+    pred, ground_truth = pred.detach().cpu().numpy(), ground_truth.detach().cpu().numpy()
     return metrics.roc_auc_score(ground_truth, pred, multi_class = 'ovo')
     

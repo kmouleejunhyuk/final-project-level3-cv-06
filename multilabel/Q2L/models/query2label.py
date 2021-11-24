@@ -93,7 +93,11 @@ class Qeruy2Label(nn.Module):
                   .format(path, checkpoint['epoch']))
 
     def reset_fc(self, num_class):
-        self.fc = GroupWiseLinear(num_class, self.hidden_dim, bias=True)
+        self.fc = nn.Sequential(
+            GroupWiseLinear(80, self.hidden_dim, bias=True),
+            nn.Linear(80, 38)
+        )
+
 
 
 def build_q2l(args):

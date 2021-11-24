@@ -56,7 +56,7 @@ class Q2L(nn.Module):
                 if model.fc.num_class != num_classes:
                     past = model.fc.num_class
                     model.reset_fc(num_classes)
-                    print(f'Changed fc output from {past} to {model.fc.num_class}')
+                    print(f'Changed fc output from {past} to {model.fc[-1].out_features}')
                 del checkpoint
                 del state_dict
                 torch.cuda.empty_cache() 
@@ -65,8 +65,8 @@ class Q2L(nn.Module):
 
         self.model = model
 
-    def forward(self, input, label):
-        return self.model(input, label)
+    def forward(self, input):
+        return self.model(input)
 
 
 

@@ -1,4 +1,5 @@
 import os
+from albumentations.core.transforms_interface import ImageOnlyTransform
 import numpy as np
 import pandas as pd
 
@@ -10,6 +11,7 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import cv2
 import torch
+from imgaug.augmenters.size import pad, Resize
 # from albumentations.pytorch import ToTensorV2
 
 from pycocotools.coco import COCO
@@ -17,8 +19,9 @@ from torch.utils.data import Dataset, DataLoader
 
 import copy
 
-train_path = '../tmp/modified_tmp_dummy.json' # json path
-dataset_path = '../tmp/sample_images_512' # image path
+# train_path = '../tmp/modified_tmp_dummy.json' # json path
+# dataset_path = '../tmp/sample_images_512' # image path
+ROOT = '/opt/ml/finalproject/data'
 
 # category_names = ['Background','Aerosol', 'Alcohol', 'Awl', 'Axe', 'Bat', 'Battery', 'Bullet', 'Firecracker', 'Gun', 'GunParts', 'Hammer',
 #  'HandCuffs', 'HDD', 'Knife', 'Laptop', 'Lighter', 'Liquid', 'Match', 'MetalPipe', 'NailClippers', 'PrtableGas', 'Saw', 'Scissors', 'Screwdriver',
@@ -67,7 +70,8 @@ class CustomDataLoader(Dataset):
 
         # cv2를 활용하여 image 불러오기
         file_name = image_infos["file_name"]
-        images = cv2.imread(os.path.join(dataset_path, file_name))
+        data_path = image_infos["path"]
+        images = cv2.imread(os.path.join(ROOT, self.mode) + os.path.join(data_path, file_name))
         images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB).astype(np.float32)
         images /= 255.0
 
@@ -97,7 +101,40 @@ class CustomDataLoader(Dataset):
 # def collate_fn(batch):
 #     return tuple(zip(*batch))
 
+class ratio_aware_pad(ImageOnlyTransform):
+    def __init__(self, padmax = None):
+        super().__init__()
+        self.padmax = padmax
+
+    def apply(self, img, **params):
+        if self.padmax:
+            #max size aware padding
+            #크기 이상인 이미지는 없다고 가정
+            assert img.shape[0] < self.padmax and img.shape[1] < self.padmax
+            u, r = (self.padmax - img.shape[0]) // 2, (self.padmax - img.shape[1]) // 2
+            d, l = self.padmax - u, self.padmax - r
+            img = pad(img, top = u, bottom = d, right = r, left = l, cval = 250)
+            
+        else:   #ratio-aware padding
+            h, w = img.shape[0], img.shape[1]
+            if h == w: return img
+
+            if h > w:
+                r_delta = (h - w) // 2
+                l_delta = (h - w) - r_delta
+                img = pad(img, right = r_delta, left = l_delta, cval = 250)
+            else:
+                u_delta = (w - h) // 2
+                d_delta = (w - h) - u_delta
+                img = pad(img, top = u_delta, bottom = d_delta, cval = 250)
+
+            assert img.shape[0] == img.shape[1]
+        return img
+
+        
 train_transform = A.Compose([
+    ratio_aware_pad(),
+    A.augmentations.geometric.resize.Resize(384, 384),
     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
     ToTensorV2()
 ])

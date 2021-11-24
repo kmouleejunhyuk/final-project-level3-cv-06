@@ -1,6 +1,6 @@
 seed: 1004
 epochs: 10
-batch_size: 2
+batch_size: 4
 workers: 2
 model: "Q2L"
 lr: 1e-4
@@ -27,3 +27,5 @@ model_dir: "./runs"
 wandb: False
 entity: cider6
 project: "test"
+
+out_thr: 0.5
