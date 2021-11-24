@@ -1,0 +1,17 @@
+pytorch version: 1.8.0
+GPU 사용 가능 여부: True
+loading annotations into memory...
+Done (t=0.13s)
+creating index...
+index created!
+loading annotations into memory...
+Done (t=0.13s)
+creating index...
+index created!
+Epoch[0/50](20/116) || training loss 0.1286 || training accuracy 96.14% || lr 0.0001 || training recall 0.14 || training precision 0.077 || training AUC 0.088
+Epoch[0/50](40/116) || training loss 0.1108 || training accuracy 96.20% || lr 0.0001 || training recall 0.14 || training precision 0.13 || training AUC 0.12
+Epoch[0/50](60/116) || training loss 0.1036 || training accuracy 96.43% || lr 0.0001 || training recall 0.24 || training precision 0.15 || training AUC 0.17
+Epoch[0/50](80/116) || training loss 0.07205 || training accuracy 97.78% || lr 0.0001 || training recall 0.32 || training precision 0.29 || training AUC 0.3
+Epoch[0/50](100/116) || training loss 0.07784 || training accuracy 97.25% || lr 0.0001 || training recall 0.36 || training precision 0.26 || training AUC 0.29
+0 Epoch's overall result
+Epoch[0/50](116/116) || training loss 0.119 || training accuracy 96.12% ||training recall 0.23 || training precision 0.18 || training AUC 0.19
