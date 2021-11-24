@@ -31,8 +31,11 @@ class LitModel(LightningModule):
         self.loss_module = nn.CrossEntropyLoss()
 
         # self.example_input_array = torch.zeros((1, 3, 32, 32), dtype=torch.float32)
-    
     def forward(self, imgs):
+        # Forward function that is run when visualizing the graph
+        return self.model(imgs)
+
+    def configure_optimizers(self):
         if self.hparams.optim_name == "Adam":
             optimizer = optim.AdamW(self.parameters(), **self.hparams.optim_hparams)
         elif self.hparams.optimizer_name == "SGD":
