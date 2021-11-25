@@ -1,18 +1,5 @@
-from pytorch_lightning import LightningModule
-import pytorch_lightning as pl
 import torch
-from torch.utils.data import Dataset, DataLoader
-from pytorch_lightning import LightningModule
-from effdet import get_efficientdet_config, EfficientDet, DetBenchTrain
-from effdet.efficientdet import HeadNet
-
-from typing import Dict
-import pytorch_lightning as pl
-import torch
-from omegaconf import DictConfig
-from torch.utils.data import Dataset, DataLoader
-from pytorch_lightning import LightningModule
-from effdet import get_efficientdet_config, EfficientDet, DetBenchTrain
+from effdet import DetBenchTrain, EfficientDet, get_efficientdet_config
 from effdet.efficientdet import HeadNet
 
 
