@@ -42,12 +42,13 @@ class CustomDataLoader(Dataset):
     """
     coco format
     """
-    def __init__(self, data_dir, mode="train", transform=None, class_num=38):
+    def __init__(self, image_dir, data_dir, mode="train", transform=None, class_num=38):
         super().__init__()
         self.mode = mode
         self.transform = transform
         self.coco = COCO(data_dir)
         self.class_num = class_num
+        self.image_dir = image_dir
 
     def __getitem__(self, index):
         # dataset이 index되어 list처럼 동작
