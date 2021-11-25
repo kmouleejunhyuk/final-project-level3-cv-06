@@ -2,9 +2,9 @@ from pytorch_lightning import LightningModule
 import pytorch_lightning as pl
 import torch.nn as nn
 import torch.optim as optim
-from models.resnet import ResNet
-
-model_dict = {"ResNet" : ResNet}
+#from models.resnet import ResNet
+from models.efficientdet import efficientdet
+model_dict = {"effi" : efficientdet}
 act_fn_by_name = {"tanh": nn.Tanh, "relu": nn.ReLU, "leakyrelu": nn.LeakyReLU, "gelu": nn.GELU}
 
 def create_model(model_name, model_hparams):

@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from models.models import act_fn_by_name
 
 # 해결 필요 
-resnet_blocks_by_name = {"ResNetBlock": ResNetBlock, "PreActResNetBlock": PreActResNetBlock}
+# resnet_blocks_by_name = {"ResNetBlock": ResNetBlock, "PreActResNetBlock": PreActResNetBlock}
 
 class ResNetBlock(nn.Module):
     def __init__(self, c_in, act_fn, subsample=False, c_out=-1):
@@ -78,7 +78,7 @@ class PreActResNetBlock(nn.Module):
         out = z + x
         return out
 
-
+resnet_blocks_by_name = {"ResNetBlock": ResNetBlock, "PreActResNetBlock": PreActResNetBlock}
 
 class ResNet(nn.Module):
     def __init__(
