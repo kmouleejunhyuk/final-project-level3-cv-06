@@ -20,4 +20,4 @@ def All_metric(pred, gt, n_classes, type='train'):
     if type=='train':
         return np.mean(np.array(conf_mat), axis=0)
     else:
-        return conf_mat
+        return np.array(conf_mat)
