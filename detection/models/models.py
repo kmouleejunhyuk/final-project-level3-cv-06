@@ -2,16 +2,16 @@ from pytorch_lightning import LightningModule
 import pytorch_lightning as pl
 import torch.nn as nn
 import torch.optim as optim
-#from models.resnet import ResNet
-from models.efficientdet import efficientdet
-model_dict = {"effi" : efficientdet}
+#from models.efficientdet import efficientdet
+from models.fasterrcnn import FCNN
+#model_dict = {"effi" : efficientdet}
 act_fn_by_name = {"tanh": nn.Tanh, "relu": nn.ReLU, "leakyrelu": nn.LeakyReLU, "gelu": nn.GELU}
 
-def create_model(model_name, model_hparams):
-    if model_name in model_dict:
-        return model_dict[model_name](**model_hparams)
-    else:
-        assert False, f'Unknown model name "{model_name}". Available models are: {str(model_dict.keys())}'
+# def create_model(model_name, model_hparams):
+#     if model_name in model_dict:
+#         return model_dict[model_name](**model_hparams)
+#     else:
+#         assert False, f'Unknown model name "{model_name}". Available models are: {str(model_dict.keys())}'
 
 # https://pytorch-lightning.readthedocs.io/en/latest/notebooks/course_UvA-DL/04-inception-resnet-densenet.html
 class LitModel(LightningModule):
@@ -27,7 +27,8 @@ class LitModel(LightningModule):
         # argument로 제공된 것들 self.hparams내의 속성으로 저장
         self.save_hyperparameters()
         # print(self.hparams)
-        self.model = create_model(model_name, model_hparams)
+        # self.model = create_model(model_name, model_hparams)
+        self.model = FCNN()
         self.loss_module = nn.CrossEntropyLoss()
 
         # self.example_input_array = torch.zeros((1, 3, 32, 32), dtype=torch.float32)

@@ -82,6 +82,8 @@ class CustomDataset(Dataset):
     def __len__(self) -> int:
         return len(self.coco.getImgIds())
 
+def collate_fn(batch):
+    return tuple(zip(*batch))
 
 def train_transform():
     return A.Compose([

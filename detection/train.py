@@ -76,7 +76,7 @@ def train_model(model_name, save_name=None, **kwargs):
     return model, result
 
 resnet_model, resnet_results = train_model(
-    model_name="effi",
+    model_name="fcnn",
     model_hparams={},
     optimizer_name="SGD",
     optimizer_hparams={"lr": 0.1, "momentum": 0.9, "weight_decay": 1e-4},

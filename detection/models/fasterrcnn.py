@@ -6,6 +6,7 @@ from torchvision.models.detection.rpn import AnchorGenerator
 
 class FCNN(nn.Module):
     def __init__(self):
+        super().__init__()
         num_classes = 39 # include background (0: background)
 
         self.backbone = torchvision.models.mobilenet_v2(pretrained=True).features
