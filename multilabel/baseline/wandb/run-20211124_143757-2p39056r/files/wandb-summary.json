@@ -1,1 +1,0 @@
-{"Train/Train loss": 0.0542, "Train/Train acc": 0.9795, "Train/Train recall": 0.4057, "Train/Train precision": 0.3807, "Train/Train AUC": 0.3874, "learning_rate": 0.0001, "epoch": 1, "_runtime": 181, "_timestamp": 1637764858, "_step": 114}

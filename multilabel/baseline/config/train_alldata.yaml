@@ -25,6 +25,6 @@ val_path:   "/opt/ml/finalproject/data/eval/remodified_eval_dummy.json"
 image_path: "/opt/ml/finalproject/data/"
 model_dir: "./runs"
 
-wandb: True
+wandb: False
 entity: cider6
 project: "final_project"

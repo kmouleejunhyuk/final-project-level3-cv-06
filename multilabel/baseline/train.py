@@ -90,7 +90,7 @@ def train(model_dir, config_train, thr=0.5):
         image_dir=config_train['image_path'], data_dir=config_train['train_path'], mode="train", transform=train_transform
     )
     val_dataset = CustomDataLoader(
-        image_dir=config_train['image_path'], data_dir=config_train['val_path'], mode="val", transform=val_transform
+    image_dir=config_train['image_path'], data_dir=config_train['val_path'], mode="val", transform=val_transform
     )
 
     # data_loader
@@ -191,7 +191,7 @@ def train(model_dir, config_train, thr=0.5):
                 print(
                     f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
                     f"training loss {epoch_loss/len(train_loader):4.4} || training accuracy {epoch_metric[0]/len(train_loader):4.2%} ||"
-                    f"training recall {epoch_metric[1]/len(train_loader):.2} || training precision {epoch_metric[2]/len(train_loader):.2} || training f1 {epoch_metric[3]/len(train_loader):.2}"
+                    f"training recall {epoch_metric[1]/len(train_loader):.2} || training precision {epoch_metric[2]/len(train_loader):.2} || training f1 {epoch_metric[3]/len(train_loader):.2} ||"
                     f"training AUC {epoch_metric[4]/len(train_loader):.2}"
                     )
         scheduler.step()
@@ -265,7 +265,7 @@ def train(model_dir, config_train, thr=0.5):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--config_train', default="config/train.yaml",type=str, help='path of train configuration yaml file')
+    parser.add_argument('--config_train', type=str, help='path of train configuration yaml file')
 
     args = parser.parse_args()
 

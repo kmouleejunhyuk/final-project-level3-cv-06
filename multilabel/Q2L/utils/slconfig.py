@@ -63,7 +63,9 @@ class SLConfig(object):
     """
     config files.
     only support .py file as config now.
+
     ref: mmcv.utils.config
+
     Example:
         >>> cfg = Config(dict(a=1, b=dict(b1=[0, 1])))
         >>> cfg.a
@@ -165,6 +167,7 @@ class SLConfig(object):
         Args:
             a ([type]): [description]
             b ([type]): [description]
+
         Returns:
             [dict]: [description]
         """
@@ -373,7 +376,9 @@ class SLConfig(object):
 
     def merge_from_dict(self, options):
         """Merge list into cfg_dict
+
         Merge the dict parsed by MultipleKVAction into this cfg.
+
         Examples:
             >>> options = {'model.backbone.depth': 50,
             ...            'model.backbone.with_cp':True}
@@ -382,6 +387,7 @@ class SLConfig(object):
             >>> cfg_dict = super(Config, self).__getattribute__('_cfg_dict')
             >>> assert cfg_dict == dict(
             ...     model=dict(backbone=dict(depth=50, with_cp=True)))
+
         Args:
             options (dict): dict of configs to merge from.
         """
@@ -443,3 +449,4 @@ class DictAction(Action):
                 val = val[0]
             options[key] = val
         setattr(namespace, self.dest, options)
+
