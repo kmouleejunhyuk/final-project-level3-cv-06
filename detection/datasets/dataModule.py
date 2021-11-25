@@ -21,7 +21,6 @@ class CustomDataModule(LightningDataModule):
                                                         data_dir="/opt/ml/finalproject/data/train/", mode="val", transforms=valid_transform())
     
     def train_dataloader(self):
-        print(len(self.trainDataset))
         return DataLoader(self.trainDataset, batch_size = self.batch_size)
     def val_dataloader(self):
         return DataLoader(self.valDataset, batch_size = self.batch_size)

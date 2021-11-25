@@ -61,8 +61,6 @@ def train_model(model_name, save_name=None, **kwargs):
     # else:
     pl.seed_everything(42)  # To be reproducable
     model = LitModel(model_name=model_name, **kwargs)
-    print(model)
-    print(len(train_loader))
     trainer.fit(model, train_loader, val_loader)
     model = LitModel.load_from_checkpoint(
         trainer.checkpoint_callback.best_model_path

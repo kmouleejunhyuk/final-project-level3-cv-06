@@ -55,7 +55,7 @@ class CustomDataset(Dataset):
             areas = np.array([x['area'] for x in anns])
             areas = torch.as_tensor(areas, dtype=torch.float32)
 
-            target = {'boxes': boxes, 'labels': labels, 'image_id': torch.tensor([index]), 'area': areas}
+            target = {'boxes': boxes, 'labels': labels, 'image_id': torch.tensor([index])}
 
             # transform
             if self.transforms:
