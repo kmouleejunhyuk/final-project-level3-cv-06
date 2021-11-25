@@ -23,6 +23,10 @@ from losses import create_criterion
 from optim_sche import get_opt_sche
 from metrics import All_metric
 
+category_names = ['Aerosol', 'Alcohol', 'Awl', 'Axe', 'Bat', 'Battery', 'Bullet', 'Firecracker', 'Gun', 'GunParts', 'Hammer',
+ 'HandCuffs', 'HDD', 'Knife', 'Laptop', 'Lighter', 'Liquid', 'Match', 'MetalPipe', 'NailClippers', 'PrtableGas', 'Saw', 'Scissors', 'Screwdriver',
+ 'SmartPhone', 'SolidFuel', 'Spanner', 'SSD', 'SupplymentaryBattery', 'TabletPC', 'Thinner', 'USB', 'ZippoOil', 'Plier', 'Chisel', 'Electronic cigarettes',
+ 'Electronic cigarettes(Liquid)', 'Throwing Knife']
 
 def seed_everything(seed):
     torch.manual_seed(seed)
@@ -132,9 +136,8 @@ def train(model_dir, config_train, thr=0.5):
         # train loop
         model.train()
         epoch_loss = 0
-        epoch_metric = [0, 0, 0, 0]
+        epoch_metric = np.zeros(5)
 
-        # for idx, train_batch in enumerate(tqdm(train_loader)):
         for idx, train_batch in enumerate(train_loader):
             inputs, labels = train_batch
             inputs = inputs.to(device)
@@ -154,7 +157,8 @@ def train(model_dir, config_train, thr=0.5):
             # acc, recall, precision, auc
             pred, labels = pred.detach().cpu().numpy(), labels.detach().cpu().numpy()
             iter_metric = All_metric(pred, labels, n_classes)
-            epoch_metric = [old+new for old, new in zip(epoch_metric, iter_metric)] 
+            epoch_metric = epoch_metric + iter_metric
+            # epoch_metric = [old+new for old, new in zip(epoch_metric, iter_metric)] 
 
             epoch_loss += loss.item()
             current_lr = get_lr(optimizer)
@@ -163,7 +167,7 @@ def train(model_dir, config_train, thr=0.5):
                 print(
                     f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
                     f"training loss {loss:4.4} || training accuracy {iter_metric[0]:4.2%} || lr {current_lr} || "
-                    f"training recall {iter_metric[1]:.2} || training precision {iter_metric[2]:.2} || training AUC {iter_metric[3]:.2}"
+                    f"training recall {iter_metric[1]:.2} || training precision {iter_metric[2]:.2} || training f1 {iter_metric[3]:.2} || training AUC {iter_metric[4]:.2}"
                     )
 
             # wandb log
@@ -174,7 +178,8 @@ def train(model_dir, config_train, thr=0.5):
                         "Train/Train acc": round(iter_metric[0], 4),
                         "Train/Train recall" : round(iter_metric[1], 4),
                         "Train/Train precision" : round(iter_metric[2], 4),
-                        "Train/Train AUC" : round(iter_metric[3], 4),
+                        "Train/Train f1" : round(iter_metric[3], 4),
+                        "Train/Train AUC" : round(iter_metric[4], 4),
                         "learning_rate": current_lr,
                         "epoch" : epoch+1
                     },
@@ -186,7 +191,8 @@ def train(model_dir, config_train, thr=0.5):
                 print(
                     f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
                     f"training loss {epoch_loss/len(train_loader):4.4} || training accuracy {epoch_metric[0]/len(train_loader):4.2%} ||"
-                    f"training recall {epoch_metric[1]/len(train_loader):.2} || training precision {epoch_metric[2]/len(train_loader):.2} || training AUC {epoch_metric[3]/len(train_loader):.2}"
+                    f"training recall {epoch_metric[1]/len(train_loader):.2} || training precision {epoch_metric[2]/len(train_loader):.2} || training f1 {epoch_metric[3]/len(train_loader):.2}"
+                    f"training AUC {epoch_metric[4]/len(train_loader):.2}"
                     )
         scheduler.step()
 
@@ -195,7 +201,7 @@ def train(model_dir, config_train, thr=0.5):
             print("Calculating validation results...")
             model.eval()
             val_epoch_loss = 0
-            val_epoch_metric = [0, 0, 0, 0]
+            class_val_epoch_metric = np.zeros((38, 5))
 
             for val_batch in val_loader:
                 inputs, labels = val_batch
@@ -212,11 +218,18 @@ def train(model_dir, config_train, thr=0.5):
 
                 # acc, recall, precision, auc
                 pred, labels = pred.detach().cpu().numpy(), labels.detach().cpu().numpy()
-                val_iter_metric = All_metric(pred, labels, n_classes)
-                val_epoch_metric = [old+new for old, new in zip(val_epoch_metric, val_iter_metric)] 
+                val_iter_metric = All_metric(pred, labels, n_classes, type='val')
+                class_val_epoch_metric += val_iter_metric
 
             val_epoch_loss /= len(val_loader)
-            val_epoch_metric = [i/len(val_loader) for i in val_epoch_metric]
+            # val_epoch_metric = [i/len(val_loader) for i in val_epoch_metric]
+
+            # val_epoch_metric shape: (5,) 
+            val_epoch_metric = np.mean(class_val_epoch_metric, axis=0)
+            val_epoch_metric = val_epoch_metric/len(val_loader)
+
+            # class_val_epoch_metric shape: (38, 5)
+            class_val_epoch_metric = class_val_epoch_metric/len(val_loader)
 
             best_val_loss = min(best_val_loss, val_epoch_loss)
             if val_epoch_metric[0] > best_val_acc:
@@ -229,16 +242,21 @@ def train(model_dir, config_train, thr=0.5):
                 f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}"
             )
             # wandb log
+            wandb_log = {}
+            wandb_log["Valid/Valid loss"] = round(val_epoch_loss, 4)
+
+            for idx, i in enumerate(['acc', 'recall', 'precision', 'f1', 'auc']):
+                wandb_log[f"Valid/Valid {i}"] = round(val_epoch_metric[idx], 4)
+
+            for i in range(38):
+                wandb_log[f"Metric_Acc/{category_names[i]}"] = class_val_epoch_metric[i][0]
+                wandb_log[f"Metric_Recall/{category_names[i]}"] = class_val_epoch_metric[i][1]
+                wandb_log[f"Metric_Precision/{category_names[i]}"] = class_val_epoch_metric[i][2]
+                wandb_log[f"Metric_f1/{category_names[i]}"] = class_val_epoch_metric[i][3]
+                wandb_log[f"Metric_Auc/{category_names[i]}"] = class_val_epoch_metric[i][4]
+                
             if config_train['wandb'] == True:
-                wandb.log(
-                    {
-                        "Valid/Valid loss": round(val_epoch_loss, 4),
-                        "Valid/Valid acc": round(val_epoch_metric[0], 4),
-                        "Valid/Valid recall": round(val_epoch_metric[1], 4),
-                        "Valid/Valid precision": round(val_epoch_metric[2], 4),
-                        "Valid/Valid AUC": round(val_epoch_metric[3], 4),
-                        "epoch": epoch+1
-                    },
+                wandb.log(wandb_log,
                     step=step,
                 )
             print()

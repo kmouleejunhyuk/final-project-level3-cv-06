@@ -10,7 +10,7 @@ data/train
 tmp/
 runs/
 *.out
-
+wandb/
 
 # personal ignore root
 personal.ipynb

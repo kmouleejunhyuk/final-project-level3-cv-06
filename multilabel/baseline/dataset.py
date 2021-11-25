@@ -60,11 +60,10 @@ class CustomDataLoader(Dataset):
         file_path = image_infos["path"]
         file_name = image_infos["file_name"]
 
-        # path = self.image_dir + 'train' + file_path + file_name
         path = os.path.join(self.image_dir, 'train', file_path[1:], file_name) if self.mode == "train" \
-            else os.path.join(self.image_dir, 'train', file_path[1:], file_name) if self.mode=="val" \
+            else os.path.join(self.image_dir, 'eval', file_path[1:], file_name) if self.mode=="val" \
             else os.path.join(self.image_dir, 'eval', file_path[1:], file_name)
-
+        
         images = cv2.imread(path)
         images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB).astype(np.float32)
         images /= 255.0
@@ -78,7 +77,7 @@ class CustomDataLoader(Dataset):
                 cat_id = make_cls_id(anns[i]['category_id'])
                 cat_vector[cat_id] = 1
 
-            return images, cat_vector
+            return images, cat_vector  
         elif self.mode == "test":
             # transform -> albumentations
             if self.transform is not None:
