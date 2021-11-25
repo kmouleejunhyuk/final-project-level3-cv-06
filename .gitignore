@@ -7,8 +7,10 @@ data/train
 *.DS_Store
 tmp/
 runs/
+*.out
+wandb/
 
 # personal ignore root
 personal.ipynb
 
-*.out
+
