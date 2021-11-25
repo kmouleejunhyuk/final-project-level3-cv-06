@@ -32,9 +32,10 @@ class LitModel(LightningModule):
         self.loss_module = nn.CrossEntropyLoss()
 
         # self.example_input_array = torch.zeros((1, 3, 32, 32), dtype=torch.float32)
-    def forward(self, imgs):
+    def forward(self, imgs, target):
+        print('here 3')
         # Forward function that is run when visualizing the graph
-        return self.model(imgs)
+        return self.model(imgs, target)
 
     def configure_optimizers(self):
         if self.hparams.optimizer_name == "Adam":
@@ -50,10 +51,15 @@ class LitModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         # "batch" is the output of the training data loader.
-        imgs, labels = batch
-        preds = self.model(imgs)
-        loss = self.loss_module(preds, labels)
-        acc = (preds.argmax(dim=-1) == labels).float().mean()
+        imgs, target = batch
+        print('here 4')
+        print(imgs)
+        print(target)
+        preds = self.forward(imgs, target)
+        loss = self.loss_module(preds, target)
+        print('here 2')
+        print(loss)
+        acc = (preds.argmax(dim=-1) == target).float().mean()
 
         # Logs the accuracy per epoch to tensorboard (weighted average over batches)
         self.log("train_acc", acc, on_step=False, on_epoch=True)

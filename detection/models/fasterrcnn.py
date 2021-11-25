@@ -22,5 +22,5 @@ class FCNN(nn.Module):
                                 rpn_anchor_generator=self.anchor_generator,
                                 box_roi_pool=self.roi_pooler)
     
-    def forward(self, x):
-        return self.model(x)
+    def forward(self, x, target):
+        return self.model(x, target)
