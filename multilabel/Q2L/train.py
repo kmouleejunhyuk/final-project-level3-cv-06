@@ -3,6 +3,7 @@ import yaml
 import glob
 import json
 import os
+import shutil
 import random
 import re
 from importlib import import_module
@@ -19,7 +20,7 @@ from dataset import (
     train_transform,
     val_transform
 )
-from metrics import calculate_metrics
+from metrics import calculate_metrics, overall, get_boxplot
 from losses import create_criterion
 from optim_sche import get_opt_sche
 from dataset import CustomDataLoader, train_transform, val_transform
@@ -60,10 +61,7 @@ def increment_path(path, exist_ok=False):
         i = [int(m.groups()[0]) for m in matches if m]
         n = max(i) + 1 if i else 2
         return f"{path}{n}"
-
-
-
-
+        
 
 def createDirectory(save_dir):
     try:
@@ -73,11 +71,12 @@ def createDirectory(save_dir):
         print("Error: Failed to create the directory.")
 
 
-def train(model_dir, config_train, thr=0.5):
+def train(model_dir, config_train, config_dir):
     seed_everything(config_train['seed'])
 
     save_dir = increment_path(os.path.join(model_dir, config_train['name']))
     createDirectory(save_dir)
+    shutil.copyfile(config_dir, os.path.join(save_dir, config_dir.split('/')[-1]))
 
     # settings
     print("pytorch version: {}".format(torch.__version__))
@@ -94,7 +93,7 @@ def train(model_dir, config_train, thr=0.5):
     )
     val_dataset = CustomDataLoader(
         data_dir=config_train['val_path'], 
-        mode="val", 
+        mode="eval", 
         transform=val_transform
     )
 
@@ -127,7 +126,8 @@ def train(model_dir, config_train, thr=0.5):
         wandb.watch(model)
 
     # loss & optimizer & scheduler
-    criterion = create_criterion(config_train['criterion'])
+    # criterion = create_criterion(config_train['criterion'])
+    criterion = torch.nn.CrossEntropyLoss()
     optimizer, scheduler = get_opt_sche(config_train, model)
 
     best_val_acc, step = 0, 0 
@@ -137,15 +137,15 @@ def train(model_dir, config_train, thr=0.5):
         model.train()
         loss_value, cal, matches, acc = 0, 0, 0, 0
 
-        for idx, (inputs, labels) in enumerate(tqdm(train_loader)):
+        for idx, (inputs, labels) in enumerate(train_loader):
             inputs = inputs.to(device)
             labels = labels.type(torch.float32).to(device)
             optimizer.zero_grad()
 
             outs = model(inputs)
-            pred = (outs > config_train['out_thr']).type(torch.float32)
-            loss = criterion(pred, labels.type(torch.float32))
-            loss.requires_grad = True
+            pred = torch.where(outs >= config_train['out_thr'], 1, 0)
+            loss = criterion(outs, labels.type(torch.float32))
+            # loss.requires_grad = True
 
             loss.backward()
             optimizer.step()
@@ -157,6 +157,7 @@ def train(model_dir, config_train, thr=0.5):
             if (idx + 1) % config_train['log_interval'] == 0:
                 cal+=1
                 train_loss = loss_value / config_train['log_interval']
+                
                 train_acc = matches / config_train['batch_size'] / config_train['log_interval'] / n_classes
                 result = calculate_metrics(pred, labels)
                 current_lr = get_lr(optimizer)
@@ -195,6 +196,7 @@ def train(model_dir, config_train, thr=0.5):
             )
 
         scheduler.step()
+        
 
         # val loop
         with torch.no_grad():
@@ -202,20 +204,23 @@ def train(model_dir, config_train, thr=0.5):
             model.eval()
             val_loss = 0
             val_acc = 0
-            figure = None
-            for val_batch in val_loader:
-                inputs, labels = val_batch
+
+            metric_logger = {'pred': [], 'gt': []}
+            for (inputs, labels) in tqdm(val_loader):
                 inputs = inputs.to(device)
-                labels = labels.type(torch.float32)
-                labels = labels.to(device)
+                labels = labels.type(torch.float32).to(device)
 
                 outs = model(inputs)
                 pred = (outs > config_train['out_thr']).type(torch.float32)
 
-                loss_item = criterion(pred, labels).item()
+                loss_item = criterion(outs, labels).item()
                 acc_item = (labels == pred).detach().cpu().numpy().sum().item()
                 val_loss += loss_item
                 val_acc += acc_item
+
+                if metric_logger['pred'] and metric_logger['gt']:
+                    metric_logger['pred'] = pred.tolist()
+                    metric_logger['gt'] = labels.tolist()
 
             val_loss = val_loss / len(val_loader)
             val_acc = val_acc / len(val_dataset) / n_classes
@@ -229,32 +234,28 @@ def train(model_dir, config_train, thr=0.5):
                 f"[Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2} || "
                 f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}"
             )
+
             # wandb log
             if config_train['wandb'] == True:
+                figure = get_boxplot(metric_logger)
                 wandb.log(
                     {
-                        # "Media/train predict images": figure,
+                        "metric/overall": figure,
                         "Valid/Valid loss": round(val_loss, 4),
                         "Valid/Valid acc": round(val_acc, 4),
                         "epoch": epoch+1
                     },
                     step=step,
                 )
-            print()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-
     parser.add_argument('--config_train', type=str, default = '/opt/ml/finalproject/multilabel/Q2L/configs/train.yaml', help='path of train configuration yaml file')
-
     args = parser.parse_args()
 
     with open(args.config_train) as f:
         config_train = yaml.load(f, Loader=yaml.FullLoader)
-
-    # check_args(args)
-    # print(args)
 
     # wandb init
     if config_train['wandb'] == True:
@@ -264,4 +265,4 @@ if __name__ == "__main__":
 
     model_dir = config_train['model_dir']
 
-    train(model_dir, config_train)
+    train(model_dir, config_train, args.config_train)

@@ -35,8 +35,8 @@ def make_cls_id(origin_id):
         cat_id = origin_id - 1
         return cat_id
 
-    elif 15<=origin_id<35:
-        cat_id = origin_id -3
+    elif 15<=origin_id<36:
+        cat_id = origin_id -2
         return cat_id
 
     elif 36<=origin_id<41:
@@ -75,7 +75,7 @@ class CustomDataLoader(Dataset):
         images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB).astype(np.float32)
         images /= 255.0
 
-        if self.mode in ("train", "val"):
+        if self.mode in ("train", "eval"):
             if self.transform is not None:
                 transformed = self.transform(image=images)
                 images = transformed["image"]
@@ -112,7 +112,7 @@ class ratio_aware_pad(ImageOnlyTransform):
             #크기 이상인 이미지는 없다고 가정
             assert img.shape[0] < self.padmax and img.shape[1] < self.padmax
             u, r = (self.padmax - img.shape[0]) // 2, (self.padmax - img.shape[1]) // 2
-            d, l = self.padmax - u, self.padmax - r
+            d, l = self.padmax - img.shape[0] - u, self.padmax - img.shape[1] - r
             img = pad(img, top = u, bottom = d, right = r, left = l, cval = 250)
             
         else:   #ratio-aware padding
@@ -140,6 +140,8 @@ train_transform = A.Compose([
 ])
 
 val_transform = A.Compose([
+    ratio_aware_pad(),
+    A.augmentations.geometric.resize.Resize(384, 384),
     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
     ToTensorV2()
 ])

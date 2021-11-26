@@ -25,7 +25,7 @@ class ResNet101(nn.Module):
 
 
 class Q2L(nn.Module):
-    def __init__(self, num_classes, from_pretrained = True):
+    def __init__(self, num_classes, from_pretrained = False):
         super().__init__()
 
         print('loading yaml for Q2L', end="\r")

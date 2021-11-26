@@ -110,9 +110,9 @@ def build_q2l(args):
         num_class = args.num_class
     )
 
-    if not args.keep_input_proj:
-        model.input_proj = nn.Identity()
-        print("set model.input_proj to Indentify!")
+    # if not args.keep_input_proj:
+    #     model.input_proj = nn.Identity()
+    #     print("set model.input_proj to Indentify!")
     
 
     return model
