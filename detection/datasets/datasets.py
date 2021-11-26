@@ -59,8 +59,11 @@ class CustomDataset(Dataset):
                     'bboxes': target['boxes'],
                     'labels': labels
                 }
+                print('here 10')
+                print(target['boxes'])
             
                 sample = self.transforms(**sample)
+                print(sample['bboxes'])
                 image = sample['image']
                 target['boxes'] = torch.tensor(sample['bboxes'], dtype=torch.float32)
 

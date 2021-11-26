@@ -59,14 +59,6 @@ class LitModel(LightningModule):
 
         return {'loss': losses, 'log': loss_dict, 'progress_bar': loss_dict}
 
-        # # loss = self.loss_module(preds, target)
-        # acc = (preds.argmax(dim=-1) == target).float().mean()
-
-        # # Logs the accuracy per epoch to tensorboard (weighted average over batches)
-        # self.log("train_acc", acc, on_step=False, on_epoch=True)
-        # self.log("train_loss", loss)
-        # return loss  # Return tensor to call ".backward" on
-
     def validation_step(self, batch, batch_idx):
         imgs, labels = batch
         preds = self.model(imgs).argmax(dim=-1)
