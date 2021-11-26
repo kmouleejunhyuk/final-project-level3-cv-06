@@ -105,7 +105,7 @@ class ratio_aware_pad(ImageOnlyTransform):
         #   A.Compose([ratio_aware_pad(), A.Resize(512, 512)])
         #   ratio aware pad, less sparse, must be resized(size may differ by image)
 
-        super().__init__()
+        super().__init__(always_apply=True)
         self.padmax = padmax
 
     def apply(self, img, **params):
@@ -133,23 +133,22 @@ class ratio_aware_pad(ImageOnlyTransform):
             assert img.shape[0] == img.shape[1]
         return img
 
-
 train_transform = A.Compose([
-    ratio_aware_pad(padmax = 2000),
+    ratio_aware_pad(),
+    A.augmentations.geometric.resize.Resize(512, 512),
     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
     ToTensorV2()
 ])
-
 
 val_transform = A.Compose([
-    ratio_aware_pad(padmax = 2000),
+    ratio_aware_pad(),
+    A.augmentations.geometric.resize.Resize(512, 512),
     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
     ToTensorV2()
 ])
 
-
 test_transform = A.Compose([
-    ratio_aware_pad(padmax = 2000),
+    ratio_aware_pad(),
     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
     ToTensorV2()
 ])

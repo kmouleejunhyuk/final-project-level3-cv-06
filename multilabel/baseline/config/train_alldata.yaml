@@ -1,6 +1,6 @@
 seed: 1004
 epochs: 50
-batch_size: 45
+batch_size: 4
 workers: 1
 model: "ResNet101"
 lr: 1e-4
@@ -20,7 +20,7 @@ eta_min: 0
 step_size: 10
 gamma: 0.1
 
-train_path: "/opt/ml/finalproject/data/train/sample_modified_train_dummy.json"
+train_path: "/opt/ml/finalproject/data/train/resample_modified_train_dummy.json"
 val_path:   "/opt/ml/finalproject/data/eval/remodified_eval_dummy.json"
 image_path: "/opt/ml/finalproject/data/"
 model_dir: "./runs"

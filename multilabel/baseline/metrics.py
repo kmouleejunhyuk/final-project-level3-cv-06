@@ -15,7 +15,7 @@ def All_metric(pred, gt, n_classes, type='train'):
         try:
             metric.append(roc_auc_score(y_true_label, y_pred_label, multi_class = 'ovo')) # ValueError: Only one class present in y_true. ROC AUC score is not defined in that case.
         except:
-            metric.append(0)
+            metric.append(roc_auc_score(y_true_label, y_pred_label))
         conf_mat.append(metric)
     if type=='train':
         return np.mean(np.array(conf_mat), axis=0)
