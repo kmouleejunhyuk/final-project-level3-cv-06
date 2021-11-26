@@ -26,14 +26,11 @@ class LitModel(LightningModule):
         super().__init__()
         # argument로 제공된 것들 self.hparams내의 속성으로 저장
         self.save_hyperparameters()
-        # print(self.hparams)
-        # self.model = create_model(model_name, model_hparams)
         self.model = FCNN()
         self.loss_module = nn.CrossEntropyLoss()
 
         # self.example_input_array = torch.zeros((1, 3, 32, 32), dtype=torch.float32)
     def forward(self, imgs, target):
-        print('here 3')
         # Forward function that is run when visualizing the graph
         return self.model(imgs, target)
 
@@ -52,19 +49,23 @@ class LitModel(LightningModule):
     def training_step(self, batch, batch_idx):
         # "batch" is the output of the training data loader.
         imgs, target = batch
-        print('here 4')
-        print(imgs)
-        print(target)
-        preds = self.forward(imgs, target)
-        loss = self.loss_module(preds, target)
-        print('here 2')
-        print(loss)
-        acc = (preds.argmax(dim=-1) == target).float().mean()
+        loss_dict = self.forward(imgs, target)
+        losses = sum(loss for loss in loss_dict.values())
 
-        # Logs the accuracy per epoch to tensorboard (weighted average over batches)
-        self.log("train_acc", acc, on_step=False, on_epoch=True)
-        self.log("train_loss", loss)
-        return loss  # Return tensor to call ".backward" on
+        self.log("loss_classifier", loss_dict['loss_classifier'])
+        self.log("loss_box_reg", loss_dict['loss_box_reg'])
+        self.log("loss_objectness", loss_dict['loss_objectness'])
+        self.log("loss_rpn_box_reg", loss_dict['loss_rpn_box_reg'])
+
+        return {'loss': losses, 'log': loss_dict, 'progress_bar': loss_dict}
+
+        # # loss = self.loss_module(preds, target)
+        # acc = (preds.argmax(dim=-1) == target).float().mean()
+
+        # # Logs the accuracy per epoch to tensorboard (weighted average over batches)
+        # self.log("train_acc", acc, on_step=False, on_epoch=True)
+        # self.log("train_loss", loss)
+        # return loss  # Return tensor to call ".backward" on
 
     def validation_step(self, batch, batch_idx):
         imgs, labels = batch
@@ -78,6 +79,6 @@ class LitModel(LightningModule):
         preds = self.model(imgs).argmax(dim=-1)
         acc = (labels == preds).float().mean()
         # By default logs it per epoch (weighted average over batches), and returns it afterwards
-        self.log("test_acc", acc)
+        self.log("test_acc", acc)   
 
 

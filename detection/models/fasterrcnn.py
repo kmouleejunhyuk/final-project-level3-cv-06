@@ -23,4 +23,7 @@ class FCNN(nn.Module):
                                 box_roi_pool=self.roi_pooler)
     
     def forward(self, x, target):
-        return self.model(x, target)
+        result = self.model(x, target)
+        print('here 8')
+        print(result)
+        return result
