@@ -1,12 +1,12 @@
 seed: 1004
-epochs: 50
+epochs: 1
 batch_size: 45
 workers: 1
 model: "ResNet101"
 lr: 1e-4
 criterion: "cross_entropy"
 log_interval: 20
-name: "baseline_cls_acc"
+name: "for 1epoch pth"
 schedule: False
 
 optimizer: "adam"
@@ -25,6 +25,6 @@ val_path:   "/opt/ml/finalproject/data/eval/remodified_eval_dummy.json"
 image_path: "/opt/ml/finalproject/data/"
 model_dir: "./runs"
 
-wandb: False
+wandb: True
 entity: cider6
 project: "final_project"
