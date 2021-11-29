@@ -8,12 +8,18 @@ class ResNet101(nn.Module):
         super().__init__()
 
         self.backbone = models.resnet101(pretrained=True)
-        self.fc = nn.Linear(1000, num_classes)
+        self.fc1 = nn.Linear(1000, 500)
+        self.fc2 = nn.Linear(500, 250)
+        self.fc3 = nn.Linear(250, 125)
+        self.fc4 = nn.Linear(125, num_classes)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         output = self.backbone(x)
-        output = self.fc(output)
+        output = self.fc1(output)
+        output = self.fc2(output)
+        output = self.fc3(output)
+        output = self.fc4(output)
         output = self.sigmoid(output)
         return output
 

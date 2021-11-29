@@ -13,37 +13,38 @@ from imgaug.augmenters.size import pad
 
 
 category_names = ['Aerosol', 'Alcohol', 'Awl', 'Axe', 'Bat', 'Battery', 'Bullet', 'Firecracker', 'Gun', 'GunParts', 'Hammer',
- 'HandCuffs', 'HDD', 'Knife', 'Laptop', 'Lighter', 'Liquid', 'Match', 'MetalPipe', 'NailClippers', 'PrtableGas', 'Saw', 'Scissors', 'Screwdriver',
- 'SmartPhone', 'SolidFuel', 'Spanner', 'SSD', 'SupplymentaryBattery', 'TabletPC', 'Thinner', 'USB', 'ZippoOil', 'Plier', 'Chisel', 'Electronic cigarettes',
- 'Electronic cigarettes(Liquid)', 'Throwing Knife']
+                  'HandCuffs', 'HDD', 'Knife', 'Laptop', 'Lighter', 'Liquid', 'Match', 'MetalPipe', 'NailClippers', 'PortableGas', 'Saw', 'Scissors', 'Screwdriver',
+                  'SmartPhone', 'SolidFuel', 'Spanner', 'SSD', 'SupplymentaryBattery', 'TabletPC', 'Thinner', 'USB', 'ZippoOil', 'Plier', 'Chisel', 'Electronic cigarettes',
+                  'Electronic cigarettes(Liquid)', 'Throwing Knife']
 
 class_num = 38
 
-def make_cls_id(origin_id):
-    # 14, 35, 40 label이 없음
-    if 0<origin_id<14:
-        cat_id = origin_id - 1
-        return cat_id
 
-    elif 15<=origin_id<35:
-        cat_id = origin_id -3
-        return cat_id
+# def make_cls_id(origin_id):
+#     # 14, 35, 40 label이 없음
+#     if 0 < origin_id < 14:
+#         cat_id = origin_id - 1
+#         return cat_id
 
-    elif 36<=origin_id<41:
-        cat_id = origin_id -3
-        return cat_id
-    elif origin_id==41:
-        cat_id = origin_id-4
-        return cat_id
-    else:
-        print('없는 category id 입니다', origin_id)
-        return None
+#     elif 15 <= origin_id < 35:
+#         cat_id = origin_id - 2
+#         return cat_id
+
+#     elif 36 <= origin_id < 40:
+#         cat_id = origin_id - 3
+#         return cat_id
+#     elif origin_id == 41:
+#         cat_id = origin_id - 4
+#         return cat_id
+#     else:
+#         raise Exception(f'없는 category id 입니다 {origin_id}')
 
 
 class CustomDataLoader(Dataset):
     """
     coco format
     """
+
     def __init__(self, image_dir, data_dir, mode="train", transform=None, class_num=38):
         super().__init__()
         self.mode = mode
@@ -55,7 +56,7 @@ class CustomDataLoader(Dataset):
     def __getitem__(self, index):
         # dataset이 index되어 list처럼 동작
         image_id = self.coco.getImgIds(imgIds=index)
-        ann_ids = self.coco.getAnnIds(imgIds=image_id) # list
+        ann_ids = self.coco.getAnnIds(imgIds=image_id)  # list
         image_infos = self.coco.loadImgs(image_id)[0]
         anns = self.coco.loadAnns(ann_ids)
 
@@ -64,9 +65,9 @@ class CustomDataLoader(Dataset):
         file_name = image_infos["file_name"]
 
         path = os.path.join(self.image_dir, 'train', file_path[1:], file_name) if self.mode == "train" \
-            else os.path.join(self.image_dir, 'eval', file_path[1:], file_name) if self.mode=="val" \
+            else os.path.join(self.image_dir, 'eval', file_path[1:], file_name) if self.mode == "val" \
             else os.path.join(self.image_dir, 'eval', file_path[1:], file_name)
-        
+
         images = cv2.imread(path)
         images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB).astype(np.float32)
         images /= 255.0
@@ -77,10 +78,11 @@ class CustomDataLoader(Dataset):
                 images = transformed["image"]
             cat_vector = np.zeros((class_num, ))
             for i in range(len(anns)):
-                cat_id = make_cls_id(anns[i]['category_id'])
+                # cat_id = make_cls_id(anns[i]['category_id'])
+                cat_id = anns[i]['category_id']
                 cat_vector[cat_id] = 1
 
-            return images, cat_vector  
+            return images, cat_vector
         elif self.mode == "test":
             # transform -> albumentations
             if self.transform is not None:
@@ -133,6 +135,7 @@ class ratio_aware_pad(ImageOnlyTransform):
             assert img.shape[0] == img.shape[1]
         return img
 
+
 train_transform = A.Compose([
     ratio_aware_pad(),
     A.augmentations.geometric.resize.Resize(512, 512),
@@ -158,7 +161,7 @@ test_transform = A.Compose([
 #     train_dataset = CustomDataLoader(
 #     data_dir=train_path, mode="train", transform=train_transform, class_num=class_num)
 
-#     batch_size = 2 
+#     batch_size = 2
 #     workers = 1
 #     use_cuda = torch.cuda.is_available()
 
