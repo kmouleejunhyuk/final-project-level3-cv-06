@@ -15,15 +15,12 @@ from tqdm import tqdm
 import glob
 
 import wandb
-from dataset import (
-    CustomDataLoader,
-    train_transform,
-    val_transform
-)
+from dataset import CustomDataLoader
 from losses import create_criterion
 from optim_sche import get_opt_sche
 from metrics import All_metric
 from visualize import draw_batch_images
+import shutil
 
 category_names = ['Aerosol', 'Alcohol', 'Awl', 'Axe', 'Bat', 'Battery', 'Bullet', 'Firecracker', 'Gun', 'GunParts', 'Hammer',
  'HandCuffs', 'HDD', 'Knife', 'Laptop', 'Lighter', 'Liquid', 'Match', 'MetalPipe', 'NailClippers', 'PortableGas', 'Saw', 'Scissors', 'Screwdriver',
@@ -71,11 +68,12 @@ def createDirectory(save_dir):
         print("Error: Failed to create the directory.")
 
 
-def train(model_dir, config_train, thr=0.5):
+def train(model_dir, config_train, config_dir, thr = 0.5):
     seed_everything(config_train['seed'])
 
     save_dir = increment_path(os.path.join(model_dir, config_train['name']))
     createDirectory(save_dir)
+    shutil.copyfile(config_dir, os.path.join(save_dir, config_dir.split('/')[-1]))
 
     # settings
     print("pytorch version: {}".format(torch.__version__))
@@ -85,14 +83,23 @@ def train(model_dir, config_train, thr=0.5):
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-    from dataset import CustomDataLoader, train_transform, val_transform
 
     # dataset
+    import sys
+    sys.path.append('/opt/ml/finalproject/multilabel/baseline')
+    from dataset import train_transform, val_transform
+    
     train_dataset = CustomDataLoader(
-        image_dir=config_train['image_path'], data_dir=config_train['train_path'], mode="train", transform=train_transform
+        image_dir=config_train['image_path'], 
+        data_dir=config_train['train_path'],
+        mode="train", 
+        transform=train_transform
     )
     val_dataset = CustomDataLoader(
-    image_dir=config_train['image_path'], data_dir=config_train['val_path'], mode="val", transform=val_transform
+        image_dir=config_train['image_path'], 
+        data_dir=config_train['val_path'], 
+        mode="val", 
+        transform=val_transform
     )
 
     # data_loader
@@ -140,11 +147,9 @@ def train(model_dir, config_train, thr=0.5):
         epoch_loss = 0
         epoch_metric = np.zeros(5)
 
-        for idx, train_batch in enumerate(train_loader):
-            images, labels = train_batch
-            images = images.to(device)
-            labels = labels.type(torch.FloatTensor)
-            labels = labels.to(device)
+        for idx, (inputs, labels) in enumerate(train_loader):
+            inputs = inputs.to(device)
+            labels = labels.type(torch.FloatTensor).to(device)
 
             optimizer.zero_grad()
 
@@ -287,4 +292,4 @@ if __name__ == "__main__":
 
     model_dir = config_train['model_dir']
 
-    train(model_dir, config_train)
+    train(model_dir, config_train, args.config_train)

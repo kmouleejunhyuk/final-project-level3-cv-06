@@ -93,7 +93,11 @@ class Qeruy2Label(nn.Module):
                   .format(path, checkpoint['epoch']))
 
     def reset_fc(self, num_class):
-        self.fc = GroupWiseLinear(num_class, self.hidden_dim, bias=True)
+        self.fc = nn.Sequential(
+            GroupWiseLinear(80, self.hidden_dim, bias=True),
+            nn.Linear(80, 38)
+        )
+
 
 
 def build_q2l(args):
@@ -106,9 +110,9 @@ def build_q2l(args):
         num_class = args.num_class
     )
 
-    if not args.keep_input_proj:
-        model.input_proj = nn.Identity()
-        print("set model.input_proj to Indentify!")
+    # if not args.keep_input_proj:
+    #     model.input_proj = nn.Identity()
+    #     print("set model.input_proj to Indentify!")
     
 
     return model
