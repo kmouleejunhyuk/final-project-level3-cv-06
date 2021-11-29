@@ -1,5 +1,5 @@
 seed: 1004
-epochs: 20
+epochs: 50
 batch_size: 45
 workers: 1
 model: "ResNet101"
@@ -7,7 +7,7 @@ lr: 1e-4
 criterion: "cross_entropy"
 log_interval: 20
 schedule: False
-name: "epoch50_removepth"
+name: "epoch50_add_layer"
 
 optimizer: "adam"
 weight_decay: 1e-5
