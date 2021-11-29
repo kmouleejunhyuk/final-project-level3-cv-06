@@ -42,16 +42,21 @@ class CustomDataset(Dataset):
             anns = self.coco.loadAnns(ann_ids)
 
             boxes = np.array([x['bbox'] for x in anns])
-
             boxes[:, 2] = boxes[:, 0] + boxes[:, 2]
             boxes[:, 3] = boxes[:, 1] + boxes[:, 3]
 
+            width, height = image_info['width'], image_info['height']
+            for i, bbox in enumerate(boxes):
+                if width < bbox[2]:
+                    bbox[2] = width
+                if height < bbox[3]:
+                    bbox[3] = height
             # labels
             labels = np.array([x['category_id']+1 for x in anns])
             labels = torch.as_tensor(labels, dtype=torch.int64)
 
             target = {'boxes': boxes, 'labels': labels, 'image_id': torch.tensor([index])}
-
+            
             # transform
             if self.transforms:
                 sample = {
@@ -59,14 +64,10 @@ class CustomDataset(Dataset):
                     'bboxes': target['boxes'],
                     'labels': labels
                 }
-                print('here 10')
-                print(target['boxes'])
-            
                 sample = self.transforms(**sample)
-                print(sample['bboxes'])
                 image = sample['image']
                 target['boxes'] = torch.tensor(sample['bboxes'], dtype=torch.float32)
-
+            
             return image, target
         
         elif self.mode == 'test':

@@ -25,7 +25,7 @@ def train_model(model_name, save_name=None, **kwargs):
         model_name - Name of the model you want to run. Is used to look up the class in "model_dict"
         save_name (optional) - If specified, this name will be used for creating the checkpoint and logging directory.
     """
-    customDataModule = CustomDataModule(batch_size = 4)
+    customDataModule = CustomDataModule(batch_size = 2)
     customDataModule.setup()
 
     train_loader = customDataModule.train_dataloader()
@@ -43,7 +43,7 @@ def train_model(model_name, save_name=None, **kwargs):
         max_epochs=180,
         callbacks=[
             ModelCheckpoint(
-                save_weights_only=True, mode="max", monitor="val_acc"
+                save_weights_only=True, mode="min", monitor="loss_classifier"
             ),  # Save the best checkpoint based on the maximum val_acc recorded. Saves only weights and not optimizer
             LearningRateMonitor("epoch"),
         ],  # Log learning rate every epoch
@@ -54,24 +54,23 @@ def train_model(model_name, save_name=None, **kwargs):
         
     pl.seed_everything(42)  # To be reproducable
     model = LitModel(model_name=model_name, **kwargs)
-    trainer.fit(model, train_loader)
+    trainer.fit(model, train_loader, val_loader)
     # model = LitModel.load_from_checkpoint(
     #     trainer.checkpoint_callback.best_model_path
     # )  # Load best checkpoint after training
 
-    # # Test best model on validation and test set
-    # val_result = trainer.test(model, test_dataloaders=val_loader, verbose=False)
+    # Test best model on validation and test set
+    val_result = trainer.test(model, test_dataloaders=val_loader, verbose=False)
     # # test_result = trainer.test(model, test_dataloaders=test_loader, verbose=False)
     # test_result = trainer.test(model, test_dataloaders=val_loader, verbose=False)
     
     # result = {"test": test_result[0]["test_acc"], "val": val_result[0]["test_acc"]}
-    result = 0
-
+    result = {"test": 0, "val": val_result["val_iou"]}
     return model, result
 
-resnet_model, resnet_results = train_model(
+fcnn, fcnn_results = train_model(
     model_name="fcnn",
     model_hparams={},
     optimizer_name="SGD",
-    optimizer_hparams={"lr": 0.1, "momentum": 0.9, "weight_decay": 1e-4},
+    optimizer_hparams={"lr": 0.0001, "momentum": 0.9, "weight_decay": 1e-4},
 )

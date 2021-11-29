@@ -1,9 +1,11 @@
 from pytorch_lightning import LightningModule
 import pytorch_lightning as pl
+import torch
 import torch.nn as nn
 import torch.optim as optim
 #from models.efficientdet import efficientdet
-from models.fasterrcnn import FCNN
+from models.fasterrcnn import FCNN, _evaluate_iou
+
 #model_dict = {"effi" : efficientdet}
 act_fn_by_name = {"tanh": nn.Tanh, "relu": nn.ReLU, "leakyrelu": nn.LeakyReLU, "gelu": nn.GELU}
 
@@ -29,7 +31,7 @@ class LitModel(LightningModule):
         self.model = FCNN()
         self.loss_module = nn.CrossEntropyLoss()
 
-        # self.example_input_array = torch.zeros((1, 3, 32, 32), dtype=torch.float32)
+        # self.example_input_array = torch.zeros((1, 3, 1500, 1500), dtype=torch.float32)
     def forward(self, imgs, target):
         # Forward function that is run when visualizing the graph
         return self.model(imgs, target)
@@ -51,7 +53,7 @@ class LitModel(LightningModule):
         imgs, target = batch
         loss_dict = self.forward(imgs, target)
         losses = sum(loss for loss in loss_dict.values())
-
+        #print('training_step loss_dict', loss_dict)
         self.log("loss_classifier", loss_dict['loss_classifier'])
         self.log("loss_box_reg", loss_dict['loss_box_reg'])
         self.log("loss_objectness", loss_dict['loss_objectness'])
@@ -60,11 +62,14 @@ class LitModel(LightningModule):
         return {'loss': losses, 'log': loss_dict, 'progress_bar': loss_dict}
 
     def validation_step(self, batch, batch_idx):
-        imgs, labels = batch
-        preds = self.model(imgs).argmax(dim=-1)
-        acc = (labels == preds).float().mean()
-        # By default logs it per epoch (weighted average over batches)
-        self.log("val_acc", acc)
+        # "batch" is the output of the training data loader.
+        imgs, target = batch
+        outs = self.model(imgs, target)
+        iou = torch.stack([_evaluate_iou(t, o) for t, o in zip(target, outs)]).mean()
+
+        self.log("val_iou", iou)
+        return {"val_iou": iou}
+    
 
     def test_step(self, batch, batch_idx):
         imgs, labels = batch
