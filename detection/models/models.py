@@ -50,7 +50,7 @@ class LitModel(LightningModule):
     def training_step(self, batch, batch_idx):
         # "batch" is the output of the training data loader.
         imgs, target = batch
-        loss_dict = self.forward(imgs, target)
+        loss_dict = self.model(imgs, target)
         losses = sum(loss for loss in loss_dict.values())
         #print('training_step loss_dict', loss_dict)
         self.log("loss_classifier", loss_dict['loss_classifier'])

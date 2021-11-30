@@ -48,7 +48,7 @@ def train_model(model_name, save_name=None, **kwargs):
         #     ),  # Save the best checkpoint based on the maximum val_acc recorded. Saves only weights and not optimizer
         #     LearningRateMonitor("epoch"),
         # ],  # Log learning rate every epoch
-        progress_bar_refresh_rate=1
+        # progress_bar_refresh_rate=1
     )  # In case your notebook crashes due to the progress bar, consider increasing the refresh rate
     trainer.logger._log_graph = True  # If True, we plot the computation graph in tensorboard
     trainer.logger._default_hp_metric = None  # Optional logging argument that we don't need
@@ -56,9 +56,9 @@ def train_model(model_name, save_name=None, **kwargs):
     pl.seed_everything(42)  # To be reproducable
     model = LitModel(model_name=model_name, **kwargs)
     trainer.fit(model, train_loader, val_loader)
-    model = LitModel.load_from_checkpoint(
-        trainer.checkpoint_callback.best_model_path
-    )  # Load best checkpoint after training
+    # model = LitModel.load_from_checkpoint(
+    #     trainer.checkpoint_callback.best_model_path
+    # )  # Load best checkpoint after training
 
     # Test best model on validation and test set
     # val_result = trainer.test(model, test_dataloaders=val_loader, verbose=False)
