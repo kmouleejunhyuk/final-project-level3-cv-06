@@ -57,20 +57,24 @@ class LitModel(LightningModule):
         self.log("loss_box_reg", loss_dict['loss_box_reg'])
         self.log("loss_objectness", loss_dict['loss_objectness'])
         self.log("loss_rpn_box_reg", loss_dict['loss_rpn_box_reg'])
+        self.log("loss", losses)
 
         return {'loss': losses, 'log': loss_dict, 'progress_bar': loss_dict}
 
     def validation_step(self, batch, batch_idx):
-        # "batch" is the output of the training data loader.
         imgs, target = batch
         outs = self.model(imgs, target)
-        print('outs')
         print(outs)
         iou = torch.stack([_evaluate_iou(t, o) for t, o in zip(target, outs)]).mean()
 
         self.log("val_iou", iou)
         return {"val_iou": iou}
-    
+
+    def validation_epoch_end(self, outs):
+        avg_iou = torch.stack([o["val_iou"] for o in outs]).mean()
+        logs = {"val_iou": avg_iou}
+        self.log("avg_val_iou",logs["val_iou"])
+        return {"avg_val_iou": avg_iou, "log": logs}
 
     def test_step(self, batch, batch_idx):
         imgs, labels = batch
