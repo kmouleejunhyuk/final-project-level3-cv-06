@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 data/eval
 data/train
+data/sampled
 
 *.DS_Store
 *.json
