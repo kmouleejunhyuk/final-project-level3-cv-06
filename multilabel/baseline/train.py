@@ -21,6 +21,9 @@ from optim_sche import get_opt_sche
 from metrics import All_metric
 from visualize import draw_batch_images
 import shutil
+import warnings
+
+
 
 category_names = ['Aerosol', 'Alcohol', 'Awl', 'Axe', 'Bat', 'Battery', 'Bullet', 'Firecracker', 'Gun', 'GunParts', 'Hammer',
  'HandCuffs', 'HDD', 'Knife', 'Laptop', 'Lighter', 'Liquid', 'Match', 'MetalPipe', 'NailClippers', 'PortableGas', 'Saw', 'Scissors', 'Screwdriver',
@@ -90,13 +93,13 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
     from dataset import train_transform, val_transform
     
     train_dataset = CustomDataLoader(
-        image_dir=config_train['image_path'], 
+        image_dir=config_train['train_image_path'], 
         data_dir=config_train['train_path'],
         mode="train", 
         transform=train_transform
     )
     val_dataset = CustomDataLoader(
-        image_dir=config_train['image_path'], 
+        image_dir=config_train['val_image_path'], 
         data_dir=config_train['val_path'], 
         mode="val", 
         transform=val_transform
@@ -147,25 +150,25 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
         epoch_loss = 0
         epoch_metric = np.zeros(5)
 
-        for idx, (inputs, labels) in enumerate(train_loader):
-            inputs = inputs.to(device)
+        for idx, (images, labels) in enumerate(train_loader):
+            images = images.to(device)
             labels = labels.type(torch.FloatTensor).to(device)
 
             optimizer.zero_grad()
 
             outs = model(images)
-            # preds = np.array(outs.detach().cpu().numpy() > 0.5, dtype = float)
             preds = torch.where(outs>thr, 1., 0.).detach()
             loss = criterion(outs, labels)
 
             loss.backward()
             optimizer.step()
             
-            # acc, recall, precision, auc
+            # acc, recall, precision, f1, auc
             images, preds, labels = images.detach().cpu(), preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
-            iter_metric = All_metric(preds, labels, n_classes)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="No positive samples in y_true, true positive value should be meaningless")
+                iter_metric = All_metric(preds, labels, n_classes, outs.detach().cpu().numpy())
             epoch_metric = epoch_metric + iter_metric
-            # epoch_metric = [old+new for old, new in zip(epoch_metric, iter_metric)] 
 
             epoch_loss += loss.item()
             current_lr = get_lr(optimizer)

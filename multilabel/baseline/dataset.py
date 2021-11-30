@@ -64,9 +64,7 @@ class CustomDataLoader(Dataset):
         file_path = image_infos["path"]
         file_name = image_infos["file_name"]
 
-        path = os.path.join(self.image_dir, 'train', file_path[1:], file_name) if self.mode == "train" \
-            else os.path.join(self.image_dir, 'eval', file_path[1:], file_name) if self.mode == "val" \
-            else os.path.join(self.image_dir, 'eval', file_path[1:], file_name)
+        path = os.path.join(self.image_dir, file_path[1:], file_name)
 
         images = cv2.imread(path)
         images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB).astype(np.float32)
