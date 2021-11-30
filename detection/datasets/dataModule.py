@@ -14,10 +14,10 @@ class CustomDataModule(LightningDataModule):
 
         # we set up only relevant datasets when stage is specified (automatically set by Pytorch-Lightning)
         if stage == "train" or stage == None:
-            self.trainDataset = CustomDataset(annotation="/opt/ml/finalproject/data/train/resampled_errordel_train.json", 
+            self.trainDataset = CustomDataset(annotation="/opt/ml/finalproject/data/train/train_test.json", 
                                                         data_dir="/opt/ml/finalproject/data/train/", mode="train", transforms=train_transform())
         if stage == "val" or stage == None:
-            self.valDataset = CustomDataset(annotation="/opt/ml/finalproject/data/train/resampled_errordel_train.json", 
+            self.valDataset = CustomDataset(annotation="/opt/ml/finalproject/data/train/train_test.json", 
                                                         data_dir="/opt/ml/finalproject/data/train/", mode="val", transforms=valid_transform())
     
     def train_dataloader(self):

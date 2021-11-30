@@ -29,7 +29,6 @@ class LitModel(LightningModule):
         # argument로 제공된 것들 self.hparams내의 속성으로 저장
         self.save_hyperparameters()
         self.model = FCNN()
-        self.loss_module = nn.CrossEntropyLoss()
 
         # self.example_input_array = torch.zeros((1, 3, 1500, 1500), dtype=torch.float32)
     def forward(self, imgs, target):
@@ -65,6 +64,8 @@ class LitModel(LightningModule):
         # "batch" is the output of the training data loader.
         imgs, target = batch
         outs = self.model(imgs, target)
+        print('outs')
+        print(outs)
         iou = torch.stack([_evaluate_iou(t, o) for t, o in zip(target, outs)]).mean()
 
         self.log("val_iou", iou)
