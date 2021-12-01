@@ -221,7 +221,7 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
                     os.remove(before_file[0])
                 torch.save(model.state_dict(), f"{save_dir}/best.pth")
                 best_val_EMR = val_metric[-1]
-            torch.save(model.state_dict(), f"{save_dir}/last_epoch{epoch}.pth")
+            torch.save(model.state_dict(), f"{save_dir}/last.pth")
 
                 
             if config_train['wandb'] == True:
