@@ -68,7 +68,6 @@ class CustomDataLoader(Dataset):
 
         images = cv2.imread(path)
         images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB).astype(np.float32)
-        images /= 255.0
 
         if self.mode in ("train", "eval", "sampled"):
             if self.transform is not None:
