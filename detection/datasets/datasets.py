@@ -55,7 +55,7 @@ class CustomDataset(Dataset):
             labels = np.array([x['category_id']+1 for x in anns])
             labels = torch.as_tensor(labels, dtype=torch.int64)
 
-            target = {'boxes': boxes, 'labels': labels, 'image_id': torch.tensor([index])}
+            target = {'boxes': boxes, 'labels': labels, 'image_id': torch.tensor([index]), 'img_scale': torch.tensor([1.])}
             
             # transform
             if self.transforms:
@@ -93,6 +93,7 @@ def collate_fn(batch):
 def train_transform():
     return A.Compose([
         A.PadIfNeeded(min_height=1500, min_width=1500, border_mode=cv2.BORDER_CONSTANT),
+        A.Resize(1024, 1024),
         ToTensorV2()
     ], bbox_params={'format': 'pascal_voc', 'label_fields':['labels']})
 
@@ -100,6 +101,7 @@ def train_transform():
 def valid_transform():
     return A.Compose([
         A.PadIfNeeded(min_height=1500, min_width=1500, border_mode=cv2.BORDER_CONSTANT),
+        A.Resize(1024, 1024),
         ToTensorV2()
     ], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})
 
