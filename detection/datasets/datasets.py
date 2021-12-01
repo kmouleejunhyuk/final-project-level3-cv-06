@@ -92,16 +92,12 @@ def collate_fn(batch):
 
 def train_transform():
     return A.Compose([
-        A.PadIfNeeded(min_height=1500, min_width=1500, border_mode=cv2.BORDER_CONSTANT),
-        A.Resize(1024, 1024),
         ToTensorV2()
     ], bbox_params={'format': 'pascal_voc', 'label_fields':['labels']})
 
 
 def valid_transform():
     return A.Compose([
-        A.PadIfNeeded(min_height=1500, min_width=1500, border_mode=cv2.BORDER_CONSTANT),
-        A.Resize(1024, 1024),
         ToTensorV2()
     ], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})
 

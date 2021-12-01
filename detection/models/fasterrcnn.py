@@ -5,7 +5,9 @@ from pytorch_lightning import LightningModule
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
 from torchvision.ops import box_iou
+
 from models.metrics import mean_average_precision
+
 
 def _evaluate_iou(target, pred):
     """Evaluate intersection over union (IOU) for target from dataset and output prediction from model."""
@@ -47,7 +49,7 @@ class LitModel(LightningModule):
     
     def training_epoch_end(self, outs):
         loss_sum = torch.stack([o["loss"] for o in outs]).sum()
-        self.log('loss_sum', loss_sum)
+        self.log('Train/loss_sum', loss_sum)
 
     def validation_step(self, batch, batch_idx):
         imgs, targets = batch
@@ -75,9 +77,10 @@ class LitModel(LightningModule):
         total_mAP = torch.stack([o["val_mAP"] for o in outs]).mean()
         avg_iou = torch.stack([o["val_iou"] for o in outs]).mean()
         logs = {"val_iou": avg_iou}
-        self.log("val_iou", avg_iou)
-        self.log("total_mAP", total_mAP)
-        return {"avg_val_iou": avg_iou, "log": logs}
+        self.log("valid/val_iou", avg_iou)
+        self.log("valid/total_mAP", total_mAP)
+        print(total_mAP)
+        return {"valid/avg_val_iou": avg_iou, "log": logs}
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)

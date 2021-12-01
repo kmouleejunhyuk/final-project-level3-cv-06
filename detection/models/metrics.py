@@ -5,6 +5,7 @@ from torch import Tensor
 from torchvision.ops import box_iou
 
 
+# https://github.com/PyTorchLightning/pytorch-lightning/blob/64abecf04fd6882128fbd527bbfa394ea981dc5b/pytorch_lightning/metrics/functional/object_detection.py
 def mean_average_precision(
     pred_image_indices: Tensor,
     pred_probs: Tensor,
