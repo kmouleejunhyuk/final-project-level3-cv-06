@@ -12,3 +12,5 @@ saved_models/tensorboards/GoogleNet/events.out.tfevents.googlenet
 saved_models/tensorboards/ResNet/events.out.tfevents.resnet
 saved_models/tensorboards/ResNetPreAct/events.out.tfevents.resnetpreact
 saved_models/*
+
+detection/lightning_logs/*
