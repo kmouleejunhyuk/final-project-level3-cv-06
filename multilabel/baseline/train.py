@@ -18,7 +18,7 @@ import wandb
 from dataset import CustomDataLoader
 from losses import create_criterion
 from optim_sche import get_opt_sche
-from metrics import All_metric
+from metrics import All_metric, modified_acc
 from visualize import draw_batch_images
 import shutil
 import warnings
@@ -148,7 +148,8 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
         # train loop
         model.train()
         epoch_loss = 0
-        epoch_metric = np.zeros(5)
+        epoch_metric = np.zeros(4)
+        epoch_modified_acc = 0
 
         for idx, (images, labels) in enumerate(train_loader):
             images = images.to(device)
@@ -165,10 +166,9 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
             
             # acc, recall, precision, f1, auc
             images, preds, labels = images.detach().cpu(), preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", message="No positive samples in y_true, true positive value should be meaningless")
-                iter_metric = All_metric(preds, labels, n_classes, outs.detach().cpu().numpy())
+            iter_metric, modified_acc = All_metric(preds, labels, n_classes)
             epoch_metric = epoch_metric + iter_metric
+            epoch_modified_acc += modified_acc
 
             epoch_loss += loss.item()
             current_lr = get_lr(optimizer)
@@ -176,18 +176,19 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
             if (idx + 1) % config_train['log_interval'] == 0:
                 print(
                     f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
-                    f"training loss {loss:4.4} || training accuracy {iter_metric[0]:4.2%} || lr {current_lr} || "
-                    f"training recall {iter_metric[1]:.2} || training precision {iter_metric[2]:.2} || training f1 {iter_metric[3]:.2} || training AUC {iter_metric[4]:.2}"
+                    f"training loss {loss:4.4} || modified accuracy {modified_acc:4.2%} || training accuracy {iter_metric[0]:4.2%} || lr {current_lr} || "
+                    f"training recall {iter_metric[1]:.2} || training precision {iter_metric[2]:.2} || training f1 {iter_metric[3]:.2}"
                     )
 
             # wandb log
             if config_train['wandb'] == True:
                 wandb_log = {}
-                for idx, i in enumerate(['acc', 'recall', 'precision', 'f1', 'auc']):
+                for idx, i in enumerate(['acc', 'recall', 'precision', 'f1']):
                     wandb_log[f"Train/Train {i}"] = round(iter_metric[idx], 4)                
-                wandb_log["Train/epoch"] = epoch + 1
-                wandb_log["learning_rate"] = current_lr
+                wandb_log["epoch"] = epoch + 1
                 wandb_log["Train/Train loss"] = round(loss.item(), 4)
+                wandb_log["Train/Train modified_accuracy"] = round(modified_acc, 4)
+                wandb_log["learning_rate"] = current_lr
                 wandb.log(wandb_log, step)
             step += 1
 
@@ -197,7 +198,7 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
             f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
             f"training loss {epoch_loss/len(train_loader):4.4} || training accuracy {epoch_metric[0]/len(train_loader):4.2%} ||"
             f"training recall {epoch_metric[1]/len(train_loader):.2} || training precision {epoch_metric[2]/len(train_loader):.2} || training f1 {epoch_metric[3]/len(train_loader):.2} ||"
-            f"training AUC {epoch_metric[4]/len(train_loader):.2}"
+            f"training modified accuracy {epoch_modified_acc/len(train_loader):4.2%}"
             )
         wandb.log({"Image/Train image" : draw_batch_images(images, labels, preds, category_names), "epoch" : epoch+1})
         scheduler.step()
@@ -207,7 +208,8 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
             print("Calculating validation results...")
             model.eval()
             val_epoch_loss = 0
-            class_val_epoch_metric = np.zeros((38, 5))
+            class_val_epoch_metric = np.zeros((38, 4))
+            epoch_modified_acc = 0
 
             for val_batch in val_loader:
                 images, labels = val_batch
@@ -224,10 +226,12 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
 
                 # acc, recall, precision, auc
                 preds, labels = preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
-                val_iter_metric = All_metric(preds, labels, n_classes, type='val')
+                val_iter_metric, modified_acc = All_metric(preds, labels, n_classes, type='val')
                 class_val_epoch_metric += val_iter_metric
+                epoch_modified_acc += modified_acc
 
             val_epoch_loss /= len(val_loader)
+            epoch_modified_acc /= len(val_loader)
             # val_epoch_metric = [i/len(val_loader) for i in val_epoch_metric]
 
             # val_epoch_metric shape: (5,) 
@@ -249,28 +253,30 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
             # torch.save(model.state_dict(), f"{save_dir}/last_epoch{epoch}.pth")
             print(
                 f"[Val] acc : {val_epoch_metric[0]:4.2%}, loss: {val_epoch_loss:4.2} || "
-                f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}"
+                f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2} || "
             )
+
             # wandb log
-            wandb_log = {}
-            wandb_log["Valid/Valid loss"] = round(val_epoch_loss, 4)
-            wandb_log["Image/Valid image"] = draw_batch_images(images.detach().cpu(), labels, preds, category_names)
-            wandb_log["epoch"] = epoch + 1
-
-            for idx, i in enumerate(['acc', 'recall', 'precision', 'f1', 'auc']):
-                wandb_log[f"Valid/Valid {i}"] = round(val_epoch_metric[idx], 4)
-
-            for i in range(38):
-                wandb_log[f"Metric_Acc/{category_names[i]}"] = class_val_epoch_metric[i][0]
-                wandb_log[f"Metric_Recall/{category_names[i]}"] = class_val_epoch_metric[i][1]
-                wandb_log[f"Metric_Precision/{category_names[i]}"] = class_val_epoch_metric[i][2]
-                wandb_log[f"Metric_f1/{category_names[i]}"] = class_val_epoch_metric[i][3]
-                wandb_log[f"Metric_Auc/{category_names[i]}"] = class_val_epoch_metric[i][4]
-                
             if config_train['wandb'] == True:
-                wandb.log(wandb_log,
-                    step=step,
-                )
+                wandb_log = {}
+                wandb_log["Valid/Valid loss"] = round(val_epoch_loss, 4)
+                wandb_log["Valid/Valid modified_accuracy"] = round(epoch_modified_acc, 4)
+                wandb_log["Image/Valid image"] = draw_batch_images(images.detach().cpu(), labels, preds, category_names)
+                wandb_log["epoch"] = epoch + 1
+
+                for idx, i in enumerate(['acc', 'recall', 'precision', 'f1']):
+                    wandb_log[f"Valid/Valid {i}"] = round(val_epoch_metric[idx], 4)
+
+                for i in range(38):
+                    wandb_log[f"Metric_Acc/{category_names[i]}"] = class_val_epoch_metric[i][0]
+                    wandb_log[f"Metric_Recall/{category_names[i]}"] = class_val_epoch_metric[i][1]
+                    wandb_log[f"Metric_Precision/{category_names[i]}"] = class_val_epoch_metric[i][2]
+                    wandb_log[f"Metric_f1/{category_names[i]}"] = class_val_epoch_metric[i][3]
+                    
+                if config_train['wandb'] == True:
+                    wandb.log(wandb_log,
+                        step=step,
+                    )
             print()
 
 

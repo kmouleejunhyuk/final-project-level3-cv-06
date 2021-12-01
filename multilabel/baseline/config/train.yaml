@@ -1,13 +1,13 @@
 seed: 1004
-epochs: 1
-batch_size: 10
+epochs: 50
+batch_size: 45
 workers: 1
 model: "ResNet101"
 lr: 1e-4
 criterion: "cross_entropy"
 log_interval: 20
 schedule: False
-name: "epoch50_add_layer"
+name: "epoch50_a"
 
 optimizer: "adam"
 weight_decay: 1e-5
@@ -20,9 +20,8 @@ eta_min: 0
 step_size: 10
 gamma: 0.1
 
-# train_path: "/opt/ml/finalproject/data/train/cat_sample_modified_train_dummy.json"
-train_path: "/opt/ml/finalproject/data/train/jiyoon_resampled_errordel_train.json"
-val_path:   "/opt/ml/finalproject/data/eval/cat_remodified_eval_dummy.json"
+train_path:   "/opt/ml/finalproject/data/train/train_jeeyoon.json"
+val_path: "/opt/ml/finalproject/data/eval/test_jeeyoon.json"
 train_image_path: "/opt/ml/finalproject/data/train"
 val_image_path: "/opt/ml/finalproject/data/eval"
 model_dir: "./runs"
