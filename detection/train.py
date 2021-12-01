@@ -4,14 +4,14 @@ import pytorch_lightning as pl
 import torch
 import torchvision
 from pytorch_lightning import LightningModule
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-
+from pytorch_lightning.loggers import WandbLogger
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
 
 from datasets.dataModule import CustomDataModule
 from models.fasterrcnn import LitModel
-
 
 # Path to the folder where the pretrained models are saved
 CHECKPOINT_PATH = "/opt/ml/finalproject/saved_models/"
@@ -34,16 +34,22 @@ def train_model(model_name, save_name=None, **kwargs):
     if save_name is None:
         save_name = model_name
 
+    wandb_logger = WandbLogger(entity='cider6', project='pytorch_lightning', name='test')
+
     # Create a PyTorch Lightning trainer with the generation callback
     trainer = pl.Trainer(
         default_root_dir=os.path.join(CHECKPOINT_PATH, save_name),  # Where to save models
         # We run on a single GPU (if possible)
         gpus=1,
+        # AMP 16bit
+        precision=16,
         # How many epochs to train for if no patience is set
-        max_epochs=180,
+        max_epochs=100,
+        # 
+        logger=wandb_logger,
         callbacks=[
-            EarlyStopping(monitor="total_mAP", patience=5, verbose=False, mode="max")
-             # Save the best checkpoint based on the maximum val_acc recorded. Saves only weights and not optimizer
+            EarlyStopping(monitor="valid/total_mAP", patience=5, verbose=False, mode="max"),
+            ModelCheckpoint(save_weights_only=True, mode='max', monitor='valid/total_mAP') # Save the best checkpoint based on the maximum val_acc recorded. Saves only weights and not optimizer
         ],  # Log learning rate every epoch
         # progress_bar_refresh_rate=1
     )  # In case your notebook crashes due to the progress bar, consider increasing the refresh rate
