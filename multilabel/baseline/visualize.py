@@ -15,7 +15,7 @@ def draw_batch_images(images, labels, preds, category_names):
     # fig.tight_layout()
     for row_num, ax in zip(range(num_examples), axes.ravel()):
         # Original Image
-        image =  (images[row_num]*std*255) + mean*255
+        image =  (images[row_num]*std*255) + (mean*255)
 
         label = np.where(labels[row_num]==1)[0]
         label = [ category_names[cat_id] for cat_id in label]
@@ -23,6 +23,6 @@ def draw_batch_images(images, labels, preds, category_names):
         pred = np.where(preds[row_num]==1)[0]
         pred = [ category_names[cat_id] for cat_id in pred]
 
-        ax.imshow(image.permute(1,2,0))
+        ax.imshow(image.permute(1,2,0).numpy().astype(int))
         ax.set_title(f"gt : {label},\n pred : {pred}")
     return fig

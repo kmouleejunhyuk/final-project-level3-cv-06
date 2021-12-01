@@ -3,11 +3,11 @@ epochs: 10
 batch_size: 40
 workers: 1
 model: "ResNet101"
-lr: 1e-3
-criterion: "cross_entropy"
+lr: 1e-4
+criterion: "mse"
 log_interval: 20
 schedule: False
-name: "newmetric"
+name: "mseloss"
 
 optimizer: "adam"
 weight_decay: 1e-5
