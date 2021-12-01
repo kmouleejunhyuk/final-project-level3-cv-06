@@ -18,7 +18,7 @@ import wandb
 from dataset import CustomDataLoader
 from losses import create_criterion
 from optim_sche import get_opt_sche
-from metrics import All_metric
+from metrics import All_metric, nonzero_mean
 from visualize import draw_batch_images
 import shutil
 
@@ -92,13 +92,13 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
     train_dataset = CustomDataLoader(
         image_dir=config_train['image_path'], 
         data_dir=config_train['train_path'],
-        mode="train", 
+        mode="sampled", 
         transform=train_transform
     )
     val_dataset = CustomDataLoader(
         image_dir=config_train['image_path'], 
         data_dir=config_train['val_path'], 
-        mode="val", 
+        mode="eval", 
         transform=val_transform
     )
 
@@ -132,29 +132,28 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
 
     # loss & optimizer
     criterion = create_criterion(config_train['criterion'])
+    metric_key = ['recall', 'precision', 'f1', 'emr']
 
     # optimizer & scheduler
     optimizer, scheduler = get_opt_sche(config_train, model)
 
 
     # start train
-    best_val_acc = 0 
+    best_val_EMR = -1
     best_val_loss = np.inf
     step = 0
+
     for epoch in range(config_train['epochs']):
         # train loop
         model.train()
-        epoch_loss = 0
-        epoch_metric = np.zeros(5)
-
-        for idx, (inputs, labels) in enumerate(train_loader):
-            inputs = inputs.to(device)
+        train_metric = np.zeros((4, ))
+        for idx, (images, labels) in tqdm(enumerate(train_loader), desc = f'train/epoch {epoch}', leave = False, total=len(train_loader)):
+            images = images.to(device)
             labels = labels.type(torch.FloatTensor).to(device)
 
             optimizer.zero_grad()
 
             outs = model(images)
-            # preds = np.array(outs.detach().cpu().numpy() > 0.5, dtype = float)
             preds = torch.where(outs>thr, 1., 0.).detach()
             loss = criterion(outs, labels)
 
@@ -163,51 +162,37 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
             
             # acc, recall, precision, auc
             images, preds, labels = images.detach().cpu(), preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
-            iter_metric = All_metric(preds, labels, n_classes)
-            epoch_metric = epoch_metric + iter_metric
-            # epoch_metric = [old+new for old, new in zip(epoch_metric, iter_metric)] 
-
-            epoch_loss += loss.item()
-            current_lr = get_lr(optimizer)
-
-            if (idx + 1) % config_train['log_interval'] == 0:
-                print(
-                    f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
-                    f"training loss {loss:4.4} || training accuracy {iter_metric[0]:4.2%} || lr {current_lr} || "
-                    f"training recall {iter_metric[1]:.2} || training precision {iter_metric[2]:.2} || training f1 {iter_metric[3]:.2} || training AUC {iter_metric[4]:.2}"
-                    )
-
-            # wandb log
+            metrics, _ = All_metric(preds, labels)
+            train_metric += np.array(metrics)
+            # wandb log(batch metric)
             if config_train['wandb'] == True:
                 wandb_log = {}
-                for idx, i in enumerate(['acc', 'recall', 'precision', 'f1', 'auc']):
-                    wandb_log[f"Train/Train {i}"] = round(iter_metric[idx], 4)                
+                for key, met in zip(metric_key, metrics):
+                    wandb_log[f"Train/{key}"] = round(met, 4)
+          
                 wandb_log["Train/epoch"] = epoch + 1
-                wandb_log["learning_rate"] = current_lr
-                wandb_log["Train/Train loss"] = round(loss.item(), 4)
+                wandb_log["Train/loss"] = round(loss.item(), 4)
+                wandb_log["learning_rate"] = get_lr(optimizer)
                 wandb.log(wandb_log, step)
             step += 1
+        
+        if scheduler:
+            scheduler.step()
 
-            # if (idx+1)==len(train_loader):
-        print(f"{epoch} Epoch's overall result")
-        print(
-            f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
-            f"training loss {epoch_loss/len(train_loader):4.4} || training accuracy {epoch_metric[0]/len(train_loader):4.2%} ||"
-            f"training recall {epoch_metric[1]/len(train_loader):.2} || training precision {epoch_metric[2]/len(train_loader):.2} || training f1 {epoch_metric[3]/len(train_loader):.2} ||"
-            f"training AUC {epoch_metric[4]/len(train_loader):.2}"
-            )
-        wandb.log({"Image/Train image" : draw_batch_images(images, labels, preds, category_names), "epoch" : epoch+1})
-        scheduler.step()
+        # wandb log(batch metric)
+        if config_train['wandb'] == True:
+            wandb.log({"Image/train image": draw_batch_images(
+                    images, labels, preds, category_names
+                )}, step)
 
         # val loop
         with torch.no_grad():
             print("Calculating validation results...")
             model.eval()
             val_epoch_loss = 0
-            class_val_epoch_metric = np.zeros((38, 5))
-
-            for val_batch in val_loader:
-                images, labels = val_batch
+            class_val_epoch_metric = np.zeros((38, 3))
+            val_metric = np.zeros((4, ))
+            for (images, labels) in tqdm(val_loader, desc = f'val/epoch {epoch}', leave = False, total=len(val_loader)):
                 images = images.to(device)
                 labels = labels.type(torch.FloatTensor)
                 labels = labels.to(device)
@@ -216,58 +201,45 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
                 preds = torch.where(outs>thr, 1., 0.).detach()
 
                 loss = criterion(outs, labels).item()
-                
                 val_epoch_loss += loss
 
-                # acc, recall, precision, auc
-                preds, labels = preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
-                val_iter_metric = All_metric(preds, labels, n_classes, type='val')
-                class_val_epoch_metric += val_iter_metric
+                # recall, precision, f1
+                images, preds, labels = images.detach().cpu(), preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
+                _metric, per_label_metric = All_metric(preds, labels)
+                class_val_epoch_metric += per_label_metric
+                val_metric += np.array(_metric)
 
             val_epoch_loss /= len(val_loader)
-            # val_epoch_metric = [i/len(val_loader) for i in val_epoch_metric]
-
-            # val_epoch_metric shape: (5,) 
-            val_epoch_metric = np.mean(class_val_epoch_metric, axis=0)
-            val_epoch_metric = val_epoch_metric/len(val_loader)
-
-            # class_val_epoch_metric shape: (38, 5)
-            class_val_epoch_metric = class_val_epoch_metric/len(val_loader)
-
+            class_val_epoch_metric /= len(val_loader)
+            val_metric /= len(val_loader)
 
             best_val_loss = min(best_val_loss, val_epoch_loss)
-            if val_epoch_metric[0] > best_val_acc:
-                print(f"New best model for val accuracy : {val_epoch_metric[0]:4.2%}! saving the best model..")
-                before_file = glob.glob(os.path.join(save_dir, 'best*.pth'))
+            if val_metric[-1] > best_val_EMR:
+                print(f"New best model for EMR : {val_metric[-1]:4.2%}! saving the best model..")
+                before_file = glob.glob(os.path.join(save_dir, 'best.pth'))
                 if before_file:
                     os.remove(before_file[0])
-                torch.save(model.state_dict(), f"{save_dir}/best_epoch{epoch+1}_{val_epoch_metric[0]:4.2%}.pth")
-                best_val_acc = val_epoch_metric[0]
-            # torch.save(model.state_dict(), f"{save_dir}/last_epoch{epoch}.pth")
-            print(
-                f"[Val] acc : {val_epoch_metric[0]:4.2%}, loss: {val_epoch_loss:4.2} || "
-                f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}"
-            )
-            # wandb log
-            wandb_log = {}
-            wandb_log["Valid/Valid loss"] = round(val_epoch_loss, 4)
-            wandb_log["Image/Valid image"] = draw_batch_images(images.detach().cpu(), labels, preds, category_names)
-            wandb_log["epoch"] = epoch + 1
+                torch.save(model.state_dict(), f"{save_dir}/best.pth")
+                best_val_EMR = val_metric[-1]
+            torch.save(model.state_dict(), f"{save_dir}/last_epoch{epoch}.pth")
 
-            for idx, i in enumerate(['acc', 'recall', 'precision', 'f1', 'auc']):
-                wandb_log[f"Valid/Valid {i}"] = round(val_epoch_metric[idx], 4)
-
-            for i in range(38):
-                wandb_log[f"Metric_Acc/{category_names[i]}"] = class_val_epoch_metric[i][0]
-                wandb_log[f"Metric_Recall/{category_names[i]}"] = class_val_epoch_metric[i][1]
-                wandb_log[f"Metric_Precision/{category_names[i]}"] = class_val_epoch_metric[i][2]
-                wandb_log[f"Metric_f1/{category_names[i]}"] = class_val_epoch_metric[i][3]
-                wandb_log[f"Metric_Auc/{category_names[i]}"] = class_val_epoch_metric[i][4]
                 
             if config_train['wandb'] == True:
-                wandb.log(wandb_log,
-                    step=step,
-                )
+                # wandb log
+                wandb_log = {}
+                wandb_log["Valid/Valid loss"] = round(val_epoch_loss, 4)
+                wandb_log["Image/Valid image"] = draw_batch_images(images.detach().cpu(), labels, preds, category_names)
+                wandb_log["epoch"] = epoch + 1
+
+                for idx, i in enumerate(metric_key):
+                    wandb_log[f"Valid/Valid {i}"] = round(val_metric[idx], 4)
+
+                for i in range(38):
+                    wandb_log[f"Metric/Recall_{category_names[i]}"] = class_val_epoch_metric[i, 0]
+                    wandb_log[f"Metric/Precision_{category_names[i]}"] = class_val_epoch_metric[i, 1]
+                    wandb_log[f"Metric/f1_{category_names[i]}"] = class_val_epoch_metric[i, 2]
+
+                wandb.log(wandb_log, step=step)
             print()
 
 
