@@ -23,7 +23,7 @@ class CustomDataModule(LightningDataModule):
                                                         data_dir="/opt/ml/data/data/sampled/", mode="val", transforms=valid_transform())
     
     def train_dataloader(self):
-        return DataLoader(self.trainDataset, batch_size = self.batch_size, collate_fn=collate_fn, num_workers=4)
+        return DataLoader(self.trainDataset, batch_size = self.batch_size, shuffle=True, collate_fn=collate_fn, num_workers=4)
     def val_dataloader(self):
         return DataLoader(self.valDataset, batch_size = self.batch_size, collate_fn=collate_fn, num_workers=4)
     def test_dataloader(self):
