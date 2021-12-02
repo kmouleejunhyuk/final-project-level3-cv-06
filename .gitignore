@@ -17,3 +17,4 @@ detection/lightning_logs/*
 detection/wandb/*
 detection/saved_models/*
 detection/models/weights/*
+detection/data/*
