@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_auc_score
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -26,3 +27,17 @@ def nonzero_mean(x1, ref, axis):
     mat = np.sum(x1, axis = axis) / nonzero
     return list(np.nan_to_num(mat, copy = True, nan = 0))
     
+def top_k_labels(outs: torch.Tensor, k: torch.Tensor):
+    k = torch.argmax(k, dim = -1).clone().detach().tolist()
+    inlet = outs.clone().detach()
+    
+    for row, n in zip(inlet, k):
+        s = row.argsort(-1, descending=True)
+        thr, rev = s[:n], s[n:]
+        row[thr], row[rev] = 1, 0
+    
+    return inlet
+
+if __name__ == '__main__':
+    ans = top_k_labels(torch.tensor([[2,1,3,4],[2,1,3,4]]), [2, 3])
+    print(ans)

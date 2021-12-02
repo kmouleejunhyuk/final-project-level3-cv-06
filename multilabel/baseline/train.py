@@ -18,7 +18,7 @@ import wandb
 from dataset import CustomDataLoader
 from losses import create_criterion
 from optim_sche import get_opt_sche
-from metrics import All_metric, nonzero_mean
+from metrics import All_metric, top_k_labels
 from visualize import draw_batch_images
 import shutil
 
@@ -123,13 +123,9 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
 
     # model
     n_classes = 38
-
     model_module = getattr(import_module("model"), config_train['model'])
-    model = model_module(num_classes=n_classes)
+    model = model_module(num_classes=n_classes, cls_classes = 6, device = device)
     model = model.to(device)
-
-    cls_model = model_module(num_classes=6)
-    cls_model = cls_model.to(device)
 
     if config_train['wandb'] == True:
         wandb.watch(model)
@@ -140,8 +136,6 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
 
     # optimizer & scheduler
     optimizer, scheduler = get_opt_sche(config_train, model)
-    cls_optimizer, cls_scheduler = get_opt_sche(config_train, cls_model)
-
 
     # start train
     best_val_EMR = -1
@@ -151,28 +145,19 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
     for epoch in range(config_train['epochs']):
         # train loop
         model.train()
-        cls_model.train()
         train_metric = np.zeros((4, ))
         for idx, (images, labels) in tqdm(enumerate(train_loader), desc = f'train/epoch {epoch}', leave = False, total=len(train_loader)):
             images = images.to(device)
-            labels = labels.type(torch.FloatTensor).to(device)
-            cls_labels = torch.sum(labels, dim=-1)
-            cls_labels = torch.clamp(cls_labels, min = 0, max = 5)
-            cls_labels = torch.nn.functional.one_hot(cls_labels).to(device)
-
+            # labels = labels
+            
             optimizer.zero_grad()
-            cls_optimizer.zero_grad()
+            outs, cls_outs = model(images)
 
-            outs = model(images)
-            cls_outs = cls_model(images)
-            preds = torch.where(outs>thr, 1., 0.).detach()
-            loss = criterion(outs, labels)
-            cls_loss = criterion(cls_outs, cls_labels)
-
+            loss = model.get_loss(outs, cls_outs, labels, criterion)
+            preds = top_k_labels(outs, cls_outs)
+            
             loss.backward()
-            cls_loss.backward()
             optimizer.step()
-            cls_optimizer.step()
             
             # acc, recall, precision, auc
             images, preds, labels = images.detach().cpu(), preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
@@ -208,14 +193,14 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
             val_metric = np.zeros((4, ))
             for (images, labels) in tqdm(val_loader, desc = f'val/epoch {epoch}', leave = False, total=len(val_loader)):
                 images = images.to(device)
-                labels = labels.type(torch.FloatTensor)
-                labels = labels.to(device)
+                
+                optimizer.zero_grad()
+                outs, cls_outs = model(images)
 
-                outs = model(images)
-                preds = torch.where(outs>thr, 1., 0.).detach()
-
-                loss = criterion(outs, labels).item()
-                val_epoch_loss += loss
+                loss = model.get_loss(outs, cls_outs, labels, criterion)
+                preds = top_k_labels(outs, cls_outs)
+                
+                val_epoch_loss += loss.detach().item()
 
                 # recall, precision, f1
                 images, preds, labels = images.detach().cpu(), preds.detach().cpu().numpy(), labels.detach().cpu().numpy()

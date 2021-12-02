@@ -1,13 +1,13 @@
 seed: 1004
 epochs: 10
-batch_size: 40
+batch_size: 20
 workers: 1
-model: "ResNet101"
+model: "Twostage"
 lr: 1e-4
 criterion: "mse"
 log_interval: 20
 schedule: False
-name: "mseloss_clsupgrade"
+name: "mseloss_clsupgrade_twostage"
 
 optimizer: "adam"
 weight_decay: 1e-5
