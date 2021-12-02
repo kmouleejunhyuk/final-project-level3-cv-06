@@ -127,6 +127,10 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
     model_module = getattr(import_module("model"), config_train['model'])
     model = model_module(num_classes=n_classes)
     model = model.to(device)
+
+    cls_model = model_module(num_classes=6)
+    cls_model = cls_model.to(device)
+
     if config_train['wandb'] == True:
         wandb.watch(model)
 
@@ -136,6 +140,7 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
 
     # optimizer & scheduler
     optimizer, scheduler = get_opt_sche(config_train, model)
+    cls_optimizer, cls_scheduler = get_opt_sche(config_train, cls_model)
 
 
     # start train
@@ -146,19 +151,28 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
     for epoch in range(config_train['epochs']):
         # train loop
         model.train()
+        cls_model.train()
         train_metric = np.zeros((4, ))
         for idx, (images, labels) in tqdm(enumerate(train_loader), desc = f'train/epoch {epoch}', leave = False, total=len(train_loader)):
             images = images.to(device)
             labels = labels.type(torch.FloatTensor).to(device)
+            cls_labels = torch.sum(labels, dim=-1)
+            cls_labels = torch.clamp(cls_labels, min = 0, max = 5)
+            cls_labels = torch.nn.functional.one_hot(cls_labels).to(device)
 
             optimizer.zero_grad()
+            cls_optimizer.zero_grad()
 
             outs = model(images)
+            cls_outs = cls_model(images)
             preds = torch.where(outs>thr, 1., 0.).detach()
             loss = criterion(outs, labels)
+            cls_loss = criterion(cls_outs, cls_labels)
 
             loss.backward()
+            cls_loss.backward()
             optimizer.step()
+            cls_optimizer.step()
             
             # acc, recall, precision, auc
             images, preds, labels = images.detach().cpu(), preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
