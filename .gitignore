@@ -14,3 +14,5 @@ saved_models/tensorboards/ResNetPreAct/events.out.tfevents.resnetpreact
 saved_models/*
 
 detection/lightning_logs/*
+detection/wandb/*
+detection/data

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision
 from pytorch_lightning import LightningModule
-from torchvision.models.detection import FasterRCNN
+from torchvision.models.detection import FasterRCNN, fasterrcnn_resnet50_fpn
 from torchvision.models.detection.rpn import AnchorGenerator
 from torchvision.ops import box_iou
 
@@ -21,19 +21,21 @@ class LitModel(LightningModule):
     def __init__(self):
         super().__init__()
         num_classes = 39 # include background (0: background)
+        # self.backbone = torchvision.models.resnet50(pretrained=True)
+        # del self.backbone.fc
+        # self.backbone = torchvision.models.mobilenet_v2(pretrained=True).features
+        # self.backbone.out_channels = 1280
 
-        self.backbone = torchvision.models.mobilenet_v2(pretrained=True).features
-        self.backbone.out_channels = 1280
-
-        self.anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
-                                                aspect_ratios=((0.5, 1.0, 2.0),))
-        self.roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],
-                                                             output_size=7,
-                                                             sampling_ratio=2)
-        self.model = FasterRCNN(backbone=self.backbone,
-                                num_classes=num_classes,
-                                rpn_anchor_generator=self.anchor_generator,
-                                box_roi_pool=self.roi_pooler)
+        # self.anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 256),),
+        #                                         aspect_ratios=((0.5, 1.0, 2.0),))
+        # self.roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],
+        #                                                      output_size=7,
+        #                                                      sampling_ratio=2)
+        # self.model = FasterRCNN(backbone=self.backbone,
+        #                         num_classes=num_classes,
+        #                         rpn_anchor_generator=self.anchor_generator,
+        #                         box_roi_pool=self.roi_pooler)
+        self.model = fasterrcnn_resnet50_fpn(num_classes=num_classes)
 
 
     def forward(self, imgs):
@@ -43,13 +45,22 @@ class LitModel(LightningModule):
     def training_step(self, batch, batch_idx):
         # "batch" is the output of the training data loader.
         imgs, targets = batch
-        loss_dict = self.model(imgs, targets)
+        loss_dict = self.model(imgs, targets) # loss_classifier, loss_box_reg, loss_objectness, loss_rpn_box_reg
         loss = sum(loss for loss in loss_dict.values())
-        return {"loss": loss, "log": loss_dict}
+        return {"loss": loss, "loss_classifier": loss_dict['loss_classifier'], "loss_box_reg": loss_dict['loss_box_reg'],
+                "loss_objectness": loss_dict['loss_objectness'], "loss_rpn_box_reg": loss_dict['loss_rpn_box_reg'],  "log": loss_dict}
     
     def training_epoch_end(self, outs):
         loss_sum = torch.stack([o["loss"] for o in outs]).sum()
+        loss_classifier = torch.stack([o["loss_classifier"] for o in outs]).mean()
+        loss_box_reg = torch.stack([o["loss_box_reg"] for o in outs]).mean()
+        loss_objectness = torch.stack([o["loss_objectness"] for o in outs]).mean()
+        loss_rpn_box_reg = torch.stack([o["loss_rpn_box_reg"] for o in outs]).mean()
         self.log('Train/loss_sum', loss_sum)
+        self.log('Train/loss_classifier', loss_classifier)
+        self.log('Train/loss_box_reg', loss_box_reg)
+        self.log('Train/loss_objectness', loss_objectness)
+        self.log('Train/loss_rpn_box_reg', loss_rpn_box_reg)
 
     def validation_step(self, batch, batch_idx):
         imgs, targets = batch
@@ -66,7 +77,7 @@ class LitModel(LightningModule):
             target_labels = targets[j]['labels']
             target_idx = torch.tensor([i for i in range(len(target_labels))], device=target_labels.device) 
 
-            iou_thres = 0.1
+            iou_thres = 0.5
             mAP = mean_average_precision(pred_idx, pred_scores, pred_labels, pred_boxes, target_idx, target_labels, target_boxes, iou_thres)
             step_mAP += mAP.float()
         step_mAP /= len(outs)
@@ -79,9 +90,8 @@ class LitModel(LightningModule):
         logs = {"val_iou": avg_iou}
         self.log("valid/val_iou", avg_iou)
         self.log("valid/total_mAP", total_mAP)
-        print(total_mAP)
         return {"valid/avg_val_iou": avg_iou, "log": logs}
     
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-4)
         return optimizer

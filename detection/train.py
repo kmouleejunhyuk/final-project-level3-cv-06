@@ -14,7 +14,7 @@ from datasets.dataModule import CustomDataModule
 from models.fasterrcnn import LitModel
 
 # Path to the folder where the pretrained models are saved
-CHECKPOINT_PATH = "/opt/ml/finalproject/saved_models/"
+CHECKPOINT_PATH = "/opt/ml/finalproject/detection/saved_models/"
 # Function for setting the seed
 pl.seed_everything(42)
 
@@ -25,7 +25,7 @@ def train_model(model_name, save_name=None, **kwargs):
         model_name - Name of the model you want to run. Is used to look up the class in "model_dict"
         save_name (optional) - If specified, this name will be used for creating the checkpoint and logging directory.
     """
-    customDataModule = CustomDataModule(batch_size = 4)
+    customDataModule = CustomDataModule(batch_size = 8)
     customDataModule.setup()
 
     train_loader = customDataModule.train_dataloader()
@@ -34,7 +34,7 @@ def train_model(model_name, save_name=None, **kwargs):
     if save_name is None:
         save_name = model_name
 
-    wandb_logger = WandbLogger(entity='cider6', project='pytorch_lightning', name='test')
+    wandb_logger = WandbLogger(entity='cider6', project='pytorch_lightning', name='resnet50_nopadding')
 
     # Create a PyTorch Lightning trainer with the generation callback
     trainer = pl.Trainer(
@@ -48,7 +48,7 @@ def train_model(model_name, save_name=None, **kwargs):
         # 
         logger=wandb_logger,
         callbacks=[
-            EarlyStopping(monitor="valid/total_mAP", patience=5, verbose=False, mode="max"),
+            EarlyStopping(monitor="valid/total_mAP", patience=10, verbose=False, mode="max"),
             ModelCheckpoint(save_weights_only=True, mode='max', monitor='valid/total_mAP') # Save the best checkpoint based on the maximum val_acc recorded. Saves only weights and not optimizer
         ],  # Log learning rate every epoch
         # progress_bar_refresh_rate=1
