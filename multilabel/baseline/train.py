@@ -18,7 +18,7 @@ import wandb
 from dataset import CustomDataLoader
 from losses import create_criterion
 from optim_sche import get_opt_sche
-from metrics import All_metric, top_k_labels
+from metrics import All_metric, get_metrics_from_matrix, top_k_labels, get_confusion_matrix
 from visualize import draw_batch_images
 import shutil
 
@@ -141,12 +141,13 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
     best_val_EMR = -1
     best_val_loss = np.inf
     step = 0
-
+    
     for epoch in range(config_train['epochs']):
         # train loop
         model.train()
-        train_metric = np.zeros((4, ))
-        for idx, (images, labels) in tqdm(enumerate(train_loader), desc = f'train/epoch {epoch}', leave = False, total=len(train_loader)):
+        train_emr = []
+        train_confusion_matrix = np.zeros((38, 4))
+        for (images, labels) in tqdm(train_loader, desc = f'train/epoch {epoch}', leave = False, total=len(train_loader)):
             images = images.to(device)
             # labels = labels
             
@@ -159,39 +160,44 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
             loss.backward()
             optimizer.step()
             
-            # acc, recall, precision, auc
+            # EMR/loss
             images, preds, labels = images.detach().cpu(), preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
-            metrics, _ = All_metric(preds, labels)
-            train_metric += np.array(metrics)
-            # wandb log(batch metric)
+            matrix = get_confusion_matrix(preds, labels)
+            train_confusion_matrix += np.array(matrix)
+            train_emr.append(np.mean((preds == labels).min(axis = 1)))
+
             if config_train['wandb'] == True:
                 wandb_log = {}
-                for key, met in zip(metric_key, metrics):
-                    wandb_log[f"Train/{key}"] = round(met, 4)
-          
-                wandb_log["Train/epoch"] = epoch + 1
+                wandb_log["Train/EMR"] = np.mean(train_emr)
                 wandb_log["Train/loss"] = round(loss.item(), 4)
-                wandb_log["learning_rate"] = get_lr(optimizer)
                 wandb.log(wandb_log, step)
             step += 1
         
         if scheduler:
             scheduler.step()
 
-        # wandb log(batch metric)
+        # mAR, mAP, mF1, etc
         if config_train['wandb'] == True:
-            wandb.log({"Image/train image": draw_batch_images(
-                    images, labels, preds, category_names
-                )}, step)
+            wandb_log = {}
+            _, metrics = get_metrics_from_matrix(train_confusion_matrix)
+            wandb_log["Train/mAR"] = metrics[0]
+            wandb_log["Train/mAP"] = metrics[1]
+            wandb_log["Train/mF1"] = metrics[2]
+
+            wandb_log["Train/epoch"] = epoch + 1
+            wandb_log["learning_rate"] = get_lr(optimizer)
+            wandb_log["Image/train image"] = draw_batch_images(images, labels, preds, category_names)
+            wandb.log(wandb_log, step)
 
         # val loop
         with torch.no_grad():
             print("Calculating validation results...")
             model.eval()
             val_epoch_loss = 0
-            class_val_epoch_metric = np.zeros((38, 3))
-            val_metric = np.zeros((4, ))
-            for (images, labels) in tqdm(val_loader, desc = f'val/epoch {epoch}', leave = False, total=len(val_loader)):
+            val_confusion_matrix = np.zeros((38, 4))
+            val_len = len(val_loader)
+            valid_emr = []
+            for (images, labels) in tqdm(val_loader, desc = f'val/epoch {epoch}', leave = False, total=val_len):
                 images = images.to(device)
                 
                 optimizer.zero_grad()
@@ -204,39 +210,41 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
 
                 # recall, precision, f1
                 images, preds, labels = images.detach().cpu(), preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
-                _metric, per_label_metric = All_metric(preds, labels)
-                class_val_epoch_metric += per_label_metric
-                val_metric += np.array(_metric)
+                matrix = get_confusion_matrix(preds, labels)
+                val_confusion_matrix += np.array(matrix)
+                valid_emr.append(np.mean((preds == labels).min(axis = 1)))
 
-            val_epoch_loss /= len(val_loader)
-            class_val_epoch_metric /= len(val_loader)
-            val_metric /= len(val_loader)
+            val_epoch_loss /= val_len
 
             best_val_loss = min(best_val_loss, val_epoch_loss)
-            if val_metric[-1] > best_val_EMR:
-                print(f"New best model for EMR : {val_metric[-1]:4.2%}! saving the best model..")
+            valid_emr = np.mean(valid_emr)
+            if valid_emr > best_val_EMR:
+                print(f"New best model for EMR : {valid_emr:4.2%}! saving the best model..")
                 before_file = glob.glob(os.path.join(save_dir, 'best.pth'))
                 if before_file:
                     os.remove(before_file[0])
                 torch.save(model.state_dict(), f"{save_dir}/best.pth")
-                best_val_EMR = val_metric[-1]
+                best_val_EMR = valid_emr
             torch.save(model.state_dict(), f"{save_dir}/last.pth")
 
                 
             if config_train['wandb'] == True:
+                label_metric, (mAR, mAP, mF1) = get_metrics_from_matrix(val_confusion_matrix)
                 # wandb log
                 wandb_log = {}
                 wandb_log["Valid/Valid loss"] = round(val_epoch_loss, 4)
                 wandb_log["Image/Valid image"] = draw_batch_images(images.detach().cpu(), labels, preds, category_names)
                 wandb_log["epoch"] = epoch + 1
+                wandb_log["Valid/EMR"] = valid_emr
 
-                for idx, i in enumerate(metric_key):
-                    wandb_log[f"Valid/Valid {i}"] = round(val_metric[idx], 4)
+                wandb_log[f"Valid/Valid mAR"] = round(mAR, 4)
+                wandb_log[f"Valid/Valid mAP"] = round(mAP, 4)
+                wandb_log[f"Valid/Valid mF1"] = round(mF1, 4)
 
                 for i in range(38):
-                    wandb_log[f"Metric/Recall_{category_names[i]}"] = class_val_epoch_metric[i, 0]
-                    wandb_log[f"Metric/Precision_{category_names[i]}"] = class_val_epoch_metric[i, 1]
-                    wandb_log[f"Metric/f1_{category_names[i]}"] = class_val_epoch_metric[i, 2]
+                    wandb_log[f"Metric/AR_{category_names[i]}"] = label_metric[i, 0]
+                    wandb_log[f"Metric/AP_{category_names[i]}"] = label_metric[i, 1]
+                    wandb_log[f"Metric/AF1_{category_names[i]}"] = label_metric[i, 2]
 
                 wandb.log(wandb_log, step=step)
             print()
