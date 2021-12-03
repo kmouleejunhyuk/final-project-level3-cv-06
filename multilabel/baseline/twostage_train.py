@@ -1,7 +1,6 @@
 import argparse
 import yaml
 import glob
-import json
 import os
 import random
 import re
@@ -18,14 +17,16 @@ import wandb
 from dataset import CustomDataLoader
 from losses import create_criterion
 from optim_sche import get_opt_sche
-from metrics import All_metric, get_metrics_from_matrix, top_k_labels, get_confusion_matrix
+from metrics import get_metrics_from_matrix, top_k_labels, get_confusion_matrix
 from visualize import draw_batch_images
 import shutil
+
 
 category_names = ['Aerosol', 'Alcohol', 'Awl', 'Axe', 'Bat', 'Battery', 'Bullet', 'Firecracker', 'Gun', 'GunParts', 'Hammer',
  'HandCuffs', 'HDD', 'Knife', 'Laptop', 'Lighter', 'Liquid', 'Match', 'MetalPipe', 'NailClippers', 'PortableGas', 'Saw', 'Scissors', 'Screwdriver',
  'SmartPhone', 'SolidFuel', 'Spanner', 'SSD', 'SupplymentaryBattery', 'TabletPC', 'Thinner', 'USB', 'ZippoOil', 'Plier', 'Chisel', 'Electronic cigarettes',
  'Electronic cigarettes(Liquid)', 'Throwing Knife']
+
 
 def seed_everything(seed):
     torch.manual_seed(seed)
@@ -68,19 +69,14 @@ def createDirectory(save_dir):
         print("Error: Failed to create the directory.")
 
 
-def train(model_dir, config_train, config_dir, thr = 0.5):
+def train(model_dir, config_train, config_dir):
+    # settings
     seed_everything(config_train['seed'])
-
     save_dir = increment_path(os.path.join(model_dir, config_train['name']))
     createDirectory(save_dir)
     shutil.copyfile(config_dir, os.path.join(save_dir, config_dir.split('/')[-1]))
-
-    # settings
     print("pytorch version: {}".format(torch.__version__))
     print("GPU 사용 가능 여부: {}".format(torch.cuda.is_available()))
-    # print(torch.cuda.get_device_name(0))
-    # print(torch.cuda.device_count())
-
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
@@ -122,7 +118,7 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
     )
 
     # model
-    n_classes = 38
+    N_CLASSES = 38
     model_module = getattr(import_module("model"), config_train['model'])
     model = model_module(num_classes=n_classes, cls_classes = 6, device = device)
     model = model.to(device)
@@ -149,19 +145,27 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
         train_confusion_matrix = np.zeros((38, 4))
         for (images, labels) in tqdm(train_loader, desc = f'train/epoch {epoch}', leave = False, total=len(train_loader)):
             images = images.to(device)
-            # labels = labels
             
             optimizer.zero_grad()
             outs, cls_outs = model(images)
 
-            loss = model.get_loss(outs, cls_outs, labels, criterion)
+            loss = model.get_loss(
+                outs, 
+                cls_outs, 
+                labels, 
+                criterion
+            )
+
             preds = top_k_labels(outs, cls_outs)
             
             loss.backward()
             optimizer.step()
             
             # EMR/loss
-            images, preds, labels = images.detach().cpu(), preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
+            images = images.detach().cpu()
+            preds = preds.detach().cpu().numpy()
+            labels = labels.detach().cpu().numpy()
+
             matrix = get_confusion_matrix(preds, labels)
             train_confusion_matrix += np.array(matrix)
             train_emr.append(np.mean((preds == labels).min(axis = 1)))
@@ -197,10 +201,10 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
             val_confusion_matrix = np.zeros((38, 4))
             val_len = len(val_loader)
             valid_emr = []
+
             for (images, labels) in tqdm(val_loader, desc = f'val/epoch {epoch}', leave = False, total=val_len):
                 images = images.to(device)
                 
-                optimizer.zero_grad()
                 outs, cls_outs = model(images)
 
                 loss = model.get_loss(outs, cls_outs, labels, criterion)
