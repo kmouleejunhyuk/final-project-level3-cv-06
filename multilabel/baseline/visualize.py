@@ -22,6 +22,8 @@ def draw_batch_images(images, labels, preds, category_names):
 
         pred = np.where(preds[row_num]==1)[0]
         pred = [ category_names[cat_id] for cat_id in pred]
+        if len(pred) == 5:
+            pred.append('++')
 
         ax.imshow(image.permute(1,2,0).numpy().astype(int))
         ax.set_title(f"gt : {label},\n pred : {pred}")
