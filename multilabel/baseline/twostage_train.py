@@ -22,45 +22,11 @@ from visualize import draw_batch_images
 import shutil
 
 
-category_names = [
-    'Aerosol', 
-    'Alcohol', 
-    'Awl', 
-    'Axe', 
-    'Bat', 
-    'Battery', 
-    'Bullet', 
-    'Firecracker', 
-    'Gun', 
-    'GunParts', 
-    'Hammer',
-    'HandCuffs', 
-    'HDD', 
-    'Knife', 
-    'Laptop', 
-    'Lighter', 
-    'Liquid', 
-    'Match', 
-    'MetalPipe', 
-    'NailClippers', 
-    'PortableGas', 
-    'Saw', 'Scissors', 
-    'Screwdriver',
-    'SmartPhone', 
-    'SolidFuel', 
-    'Spanner', 
-    'SSD', 
-    'SupplymentaryBattery', 
-    'TabletPC', 
-    'Thinner', 
-    'USB', 
-    'ZippoOil', 
-    'Plier', 
-    'Chisel', 
-    'Electronic cigarettes',
-    'Electronic cigarettes(Liquid)', 
-    'Throwing Knife'
-]
+category_names = ['Aerosol', 'Alcohol', 'Awl', 'Axe', 'Bat', 'Battery', 'Bullet', 'Firecracker', 'Gun', 'GunParts', 'Hammer',
+ 'HandCuffs', 'HDD', 'Knife', 'Laptop', 'Lighter', 'Liquid', 'Match', 'MetalPipe', 'NailClippers', 'PortableGas', 'Saw', 'Scissors', 'Screwdriver',
+ 'SmartPhone', 'SolidFuel', 'Spanner', 'SSD', 'SupplymentaryBattery', 'TabletPC', 'Thinner', 'USB', 'ZippoOil', 'Plier', 'Chisel', 'Electronic cigarettes',
+ 'Electronic cigarettes(Liquid)', 'Throwing Knife']
+
 
 def seed_everything(seed):
     torch.manual_seed(seed)
@@ -105,25 +71,14 @@ def createDirectory(save_dir):
 
 def train(model_dir, config_train, config_dir):
     # settings
-    N_CLASSES = 38
-    THR = 0.5
-
     seed_everything(config_train['seed'])
-    save_dir = increment_path(
-        os.path.join(
-            model_dir, 
-            config_train['name']))
+    save_dir = increment_path(os.path.join(model_dir, config_train['name']))
     createDirectory(save_dir)
-    shutil.copyfile(
-        config_dir, 
-        os.path.join(
-            save_dir, 
-            config_dir.split('/')[-1]))
-    
-    use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
+    shutil.copyfile(config_dir, os.path.join(save_dir, config_dir.split('/')[-1]))
     print("pytorch version: {}".format(torch.__version__))
     print("GPU 사용 가능 여부: {}".format(torch.cuda.is_available()))
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
 
     # dataset
     import sys
@@ -163,43 +118,50 @@ def train(model_dir, config_train, config_dir):
     )
 
     # model
+    N_CLASSES = 38
     model_module = getattr(import_module("model"), config_train['model'])
-    model = model_module(num_classes=N_CLASSES)
+    model = model_module(num_classes=n_classes, cls_classes = 6, device = device)
     model = model.to(device)
+
     if config_train['wandb'] == True:
         wandb.watch(model)
 
     # loss & optimizer
     criterion = create_criterion(config_train['criterion'])
-    # metric_key = ['recall', 'precision', 'f1', 'emr']
+    metric_key = ['recall', 'precision', 'f1', 'emr']
 
     # optimizer & scheduler
     optimizer, scheduler = get_opt_sche(config_train, model)
-
 
     # start train
     best_val_EMR = -1
     best_val_loss = np.inf
     step = 0
-
+    
     for epoch in range(config_train['epochs']):
         # train loop
         model.train()
         train_emr = []
         train_confusion_matrix = np.zeros((38, 4))
-        for idx, (images, labels) in tqdm(enumerate(train_loader), desc = f'train/epoch {epoch}', leave = False, total=len(train_loader)):
+        for (images, labels) in tqdm(train_loader, desc = f'train/epoch {epoch}', leave = False, total=len(train_loader)):
             images = images.to(device)
-            labels = labels.type(torch.FloatTensor).to(device)
+            
             optimizer.zero_grad()
+            outs, cls_outs = model(images)
 
-            outs = model(images)
-            preds = torch.where(outs>THR, 1., 0.).detach()
-            loss = criterion(outs, labels)
+            loss = model.get_loss(
+                outs, 
+                cls_outs, 
+                labels, 
+                criterion
+            )
 
+            preds = top_k_labels(outs, cls_outs)
+            
             loss.backward()
             optimizer.step()
             
-            # acc, recall, precision, auc
+            # EMR/loss
             images = images.detach().cpu()
             preds = preds.detach().cpu().numpy()
             labels = labels.detach().cpu().numpy()
@@ -222,22 +184,14 @@ def train(model_dir, config_train, config_dir):
         if config_train['wandb'] == True:
             wandb_log = {}
             _, metrics = get_metrics_from_matrix(train_confusion_matrix)
-            fig = draw_batch_images(
-                images, 
-                labels, 
-                preds, 
-                category_names
-            )
-        
             wandb_log["Train/mAR"] = metrics[0]
             wandb_log["Train/mAP"] = metrics[1]
             wandb_log["Train/mF1"] = metrics[2]
 
             wandb_log["Train/epoch"] = epoch + 1
             wandb_log["learning_rate"] = get_lr(optimizer)
-            wandb_log["Image/train image"] = fig
+            wandb_log["Image/train image"] = draw_batch_images(images, labels, preds, category_names)
             wandb.log(wandb_log, step)
-
 
         # val loop
         with torch.no_grad():
@@ -248,14 +202,15 @@ def train(model_dir, config_train, config_dir):
             val_len = len(val_loader)
             valid_emr = []
 
-            for (images, labels) in tqdm(val_loader, desc = f'val/epoch {epoch}', leave = False, total=len(val_loader)):
+            for (images, labels) in tqdm(val_loader, desc = f'val/epoch {epoch}', leave = False, total=val_len):
                 images = images.to(device)
-                labels = labels.type(torch.FloatTensor).to(device)
+                
+                outs, cls_outs = model(images)
 
-                outs = model(images)
-                preds = torch.where(outs>THR, 1., 0.).detach()
-                loss = criterion(outs, labels).item()
-                val_epoch_loss += loss
+                loss = model.get_loss(outs, cls_outs, labels, criterion)
+                preds = top_k_labels(outs, cls_outs)
+                
+                val_epoch_loss += loss.detach().item()
 
                 # recall, precision, f1
                 images, preds, labels = images.detach().cpu(), preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
@@ -267,7 +222,6 @@ def train(model_dir, config_train, config_dir):
 
             best_val_loss = min(best_val_loss, val_epoch_loss)
             valid_emr = np.mean(valid_emr)
-            best_val_loss = min(best_val_loss, val_epoch_loss)
             if valid_emr > best_val_EMR:
                 print(f"New best model for EMR : {valid_emr:4.2%}! saving the best model..")
                 before_file = glob.glob(os.path.join(save_dir, 'best.pth'))
@@ -276,7 +230,8 @@ def train(model_dir, config_train, config_dir):
                 torch.save(model.state_dict(), f"{save_dir}/best.pth")
                 best_val_EMR = valid_emr
             torch.save(model.state_dict(), f"{save_dir}/last.pth")
-    
+
+                
             if config_train['wandb'] == True:
                 label_metric, (mAR, mAP, mF1) = get_metrics_from_matrix(val_confusion_matrix)
                 # wandb log
@@ -301,30 +256,23 @@ def train(model_dir, config_train, config_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--config_train', 
-        default='/opt/ml/finalproject/multilabel/baseline/config/train.yaml', 
-        type=str, 
-        help='path of train configuration yaml file'
-    )
+
+    parser.add_argument('--config_train', default='/opt/ml/finalproject/multilabel/baseline/config/train.yaml', type=str, help='path of train configuration yaml file')
+
     args = parser.parse_args()
 
     with open(args.config_train) as f:
         config_train = yaml.load(f, Loader=yaml.FullLoader)
 
+    # check_args(args)
+    # print(args)
+
     # wandb init
     if config_train['wandb'] == True:
-        wandb.init(
-            entity=config_train['entity'],
-             project=config_train['project']
-        )
+        wandb.init(entity=config_train['entity'], project=config_train['project'])
         wandb.run.name = config_train['name']
         wandb.config.update(args)
 
     model_dir = config_train['model_dir']
 
-    train(
-        model_dir, 
-        config_train, 
-        args.config_train
-    )
+    train(model_dir, config_train, args.config_train)
