@@ -170,7 +170,7 @@ def train(model_dir, config_train, config_dir, thr = 0.5):
                 for key, met in zip(metric_key, metrics):
                     wandb_log[f"Train/{key}"] = round(met, 4)
           
-                wandb_log["Train/epoch"] = epoch + 1
+                wandb_log["epoch"] = epoch + 1
                 wandb_log["Train/loss"] = round(loss.item(), 4)
                 wandb_log["learning_rate"] = get_lr(optimizer)
                 wandb.log(wandb_log, step)
