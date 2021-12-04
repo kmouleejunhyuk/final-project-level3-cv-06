@@ -134,7 +134,10 @@ class ratio_aware_pad(ImageOnlyTransform):
 train_transform = A.Compose([
     ratio_aware_pad(),
     A.Resize(512, 512),
-    A.CLAHE(always_apply=False, p=1.0, clip_limit=(6, 18), tile_grid_size=(20, 18)),
+    A.OneOf([
+        A.CLAHE(always_apply=False, p=0.5, clip_limit=(6, 18), tile_grid_size=(20, 18)),
+        A.Sharpen(P=0.5)
+    ]),
     A.Normalize(),
     ToTensorV2()
 ])
@@ -142,7 +145,10 @@ train_transform = A.Compose([
 val_transform = A.Compose([
     ratio_aware_pad(),
     A.Resize(512, 512),
-    A.CLAHE(always_apply=False, p=1.0, clip_limit=(6, 18), tile_grid_size=(20, 18)),
+    # A.OneOf([
+    #     A.CLAHE(always_apply=False, p=0.5, clip_limit=(6, 18), tile_grid_size=(20, 18)),
+    #     A.Sharpen(P=0.5)
+    # ]),
     A.Normalize(),
     ToTensorV2()
 ])
