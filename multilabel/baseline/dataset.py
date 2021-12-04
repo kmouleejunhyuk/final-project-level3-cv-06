@@ -5,10 +5,9 @@ import albumentations as A
 from albumentations.core.transforms_interface import ImageOnlyTransform
 from albumentations.pytorch import ToTensorV2
 import cv2
-import torch
 
 from pycocotools.coco import COCO
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from imgaug.augmenters.size import pad
 
 
@@ -67,15 +66,14 @@ class CustomDataLoader(Dataset):
         path = os.path.join(self.image_dir, self.mode, file_path[1:], file_name)
 
         images = cv2.imread(path)
-        images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB).astype(np.float32)
-
+        images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB)
+        # print(type(images))
         if self.mode in ("train", "eval", "sampled"):
             if self.transform is not None:
                 transformed = self.transform(image=images)
                 images = transformed["image"]
             cat_vector = np.zeros((class_num, ))
             for i in range(len(anns)):
-                # cat_id = make_cls_id(anns[i]['category_id'])
                 cat_id = anns[i]['category_id']
                 cat_vector[cat_id] = 1
 
@@ -135,45 +133,22 @@ class ratio_aware_pad(ImageOnlyTransform):
 
 train_transform = A.Compose([
     ratio_aware_pad(),
-    A.augmentations.geometric.resize.Resize(512, 512),
-    A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
+    A.Resize(512, 512),
+    A.CLAHE(always_apply=False, p=1.0, clip_limit=(6, 18), tile_grid_size=(20, 18)),
+    A.Normalize(),
     ToTensorV2()
 ])
 
 val_transform = A.Compose([
     ratio_aware_pad(),
-    A.augmentations.geometric.resize.Resize(512, 512),
-    A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
+    A.Resize(512, 512),
+    A.CLAHE(always_apply=False, p=1.0, clip_limit=(6, 18), tile_grid_size=(20, 18)),
+    A.Normalize(),
     ToTensorV2()
 ])
 
 test_transform = A.Compose([
     ratio_aware_pad(),
-    A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
+    A.Normalize(),
     ToTensorV2()
 ])
-
-
-# if __name__ == '__main__':
-#     train_dataset = CustomDataLoader(
-#     data_dir=train_path, mode="train", transform=train_transform, class_num=class_num)
-
-#     batch_size = 2
-#     workers = 1
-#     use_cuda = torch.cuda.is_available()
-
-#     train_loader = DataLoader(
-#         dataset=train_dataset,
-#         batch_size=batch_size,
-#         num_workers=workers,
-#         shuffle=False,
-#         pin_memory=use_cuda,
-#         # collate_fn=collate_fn,
-#         drop_last=True,
-#     )
-
-#     images, labels = next(iter(train_loader))
-#     print(images.shape, labels.shape)
-#     print(labels.type())
-#     labels = labels.type(torch.FloatTensor)
-#     print(labels.type())
