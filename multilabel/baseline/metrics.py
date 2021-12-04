@@ -27,18 +27,21 @@ def nonzero_mean(x1, axis):
     mat = np.sum(x1, axis = axis) / np.count_nonzero(x1, axis = axis)
     return list(np.nan_to_num(mat, copy = True, nan = 0))
     
-def top_k_labels(outs: torch.Tensor, k: torch.Tensor):
-    k = torch.argmax(k, dim = -1).clone().detach().tolist()
-    inlet = outs.clone().detach()
+def top_k_labels(outs: torch.Tensor, k: torch.Tensor, identity = True):
+    if identity:
+        k = torch.argmax(k, dim = -1).clone().detach().tolist()
+        inlet = outs.clone().detach()
+        
+        for row, n in zip(inlet, k):
+            s = row.argsort(-1, descending=True)
+            thr, rev = s[:n], s[n:]
+            row[thr], row[rev] = 1, 0
     
-    for row, n in zip(inlet, k):
-        s = row.argsort(-1, descending=True)
-        thr, rev = s[:n], s[n:]
-        row[thr], row[rev] = 1, 0
-    
-    return inlet
+        return inlet
+    else:
+        return torch.argmax(outs, dim = -1).clone().detach()
 
-
+        
 def get_confusion_matrix(pred, gt):
     _matrix = []
     

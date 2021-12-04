@@ -43,3 +43,37 @@ class Twostage(nn.Module):
 
         return labels.to(self.device), cls_labels.to(self.device)
 
+
+class multihead(nn.Module):
+    def __init__(self, num_classes, cls_classes, device):
+        super().__init__()
+        self.backbone = models.resnet101(pretrained=True)
+        self.backbone.fc = nn.Identity()
+        self.fcs = nn.ModuleList([nn.Linear(2048, 2) for _ in range(38)])
+        self.device = device
+
+    def forward(self, inputs):
+        feat = self.backbone(inputs)
+        vecs = []
+        for fc in self.fcs:
+            vec = fc(feat)
+            vecs.append(vec)
+        
+        stack = torch.stack(vecs, axis = 0)
+        return stack.permute(1,0,2), 0
+
+
+    def get_loss(self, outs, cls_outs, labels, criterion):
+        label_binary = self.get_binary_label(labels).to(torch.float32)
+        losses = []
+        for out, label in zip(outs, label_binary):
+            _loss = criterion(out, label)
+            losses.append(_loss)
+        
+        return torch.sum(torch.stack(losses))
+
+    def get_binary_label(self, labels):
+        _ones = torch.ones((labels.shape))
+        counterpart = _ones - labels
+        cats = torch.stack([counterpart, labels], axis = 0)
+        return cats.permute(1,2,0).to(self.device)

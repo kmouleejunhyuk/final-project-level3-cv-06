@@ -27,4 +27,4 @@ model_dir: "./runs"
 
 wandb: True
 entity: cider6
-project: "metric_test"
+project: "final_project"

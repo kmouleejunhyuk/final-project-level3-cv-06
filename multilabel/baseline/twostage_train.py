@@ -22,10 +22,48 @@ from visualize import draw_batch_images
 import shutil
 
 
-category_names = ['Aerosol', 'Alcohol', 'Awl', 'Axe', 'Bat', 'Battery', 'Bullet', 'Firecracker', 'Gun', 'GunParts', 'Hammer',
- 'HandCuffs', 'HDD', 'Knife', 'Laptop', 'Lighter', 'Liquid', 'Match', 'MetalPipe', 'NailClippers', 'PortableGas', 'Saw', 'Scissors', 'Screwdriver',
- 'SmartPhone', 'SolidFuel', 'Spanner', 'SSD', 'SupplymentaryBattery', 'TabletPC', 'Thinner', 'USB', 'ZippoOil', 'Plier', 'Chisel', 'Electronic cigarettes',
- 'Electronic cigarettes(Liquid)', 'Throwing Knife']
+category_names = [
+    'Aerosol', 
+    'Alcohol', 
+    'Awl', 
+    'Axe', 
+    'Bat', 
+    'Battery', 
+    'Bullet', 
+    'Firecracker', 
+    'Gun', 
+    'GunParts', 
+    'Hammer',
+    'HandCuffs', 
+    'HDD', 
+    'Knife', 
+    'Laptop', 
+    'Lighter', 
+    'Liquid', 
+    'Match', 
+    'MetalPipe', 
+    'NailClippers', 
+    'PortableGas', 
+    'Saw', 
+    'Scissors', 
+    'Screwdriver',
+    'SmartPhone', 
+    'SolidFuel', 
+    'Spanner', 
+    'SSD', 
+    'SupplymentaryBattery', 
+    'TabletPC', 
+    'Thinner', 
+    'USB', 
+    'ZippoOil', 
+    'Plier', 
+    'Chisel', 
+    'Electronic cigarettes',
+    'Electronic cigarettes(Liquid)', 
+    'Throwing Knife'
+]
+
+
 
 
 def seed_everything(seed):
@@ -79,6 +117,7 @@ def train(model_dir, config_train, config_dir):
     print("GPU 사용 가능 여부: {}".format(torch.cuda.is_available()))
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
+    identity = True if 'two' in config_train['model'] else False
 
     # dataset
     import sys
@@ -120,7 +159,7 @@ def train(model_dir, config_train, config_dir):
     # model
     N_CLASSES = 38
     model_module = getattr(import_module("model"), config_train['model'])
-    model = model_module(num_classes=n_classes, cls_classes = 6, device = device)
+    model = model_module(num_classes=N_CLASSES, cls_classes = 6, device = device)
     model = model.to(device)
 
     if config_train['wandb'] == True:
@@ -128,7 +167,6 @@ def train(model_dir, config_train, config_dir):
 
     # loss & optimizer
     criterion = create_criterion(config_train['criterion'])
-    metric_key = ['recall', 'precision', 'f1', 'emr']
 
     # optimizer & scheduler
     optimizer, scheduler = get_opt_sche(config_train, model)
@@ -151,12 +189,12 @@ def train(model_dir, config_train, config_dir):
 
             loss = model.get_loss(
                 outs, 
-                cls_outs, 
+                cls_outs,
                 labels, 
                 criterion
             )
 
-            preds = top_k_labels(outs, cls_outs)
+            preds = top_k_labels(outs, cls_outs, identity = identity)
             
             loss.backward()
             optimizer.step()
@@ -207,13 +245,25 @@ def train(model_dir, config_train, config_dir):
                 
                 outs, cls_outs = model(images)
 
-                loss = model.get_loss(outs, cls_outs, labels, criterion)
-                preds = top_k_labels(outs, cls_outs)
+                loss = model.get_loss(
+                    outs, 
+                    cls_outs, 
+                    labels, 
+                    criterion
+                )
+                preds = top_k_labels(
+                    outs, 
+                    cls_outs,
+                    identity = identity
+                )
                 
                 val_epoch_loss += loss.detach().item()
 
                 # recall, precision, f1
-                images, preds, labels = images.detach().cpu(), preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
+                images = images.detach().cpu()
+                preds = preds.detach().cpu().numpy()
+                labels = labels.detach().cpu().numpy()
+
                 matrix = get_confusion_matrix(preds, labels)
                 val_confusion_matrix += np.array(matrix)
                 valid_emr.append(np.mean((preds == labels).min(axis = 1)))
@@ -257,7 +307,7 @@ def train(model_dir, config_train, config_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--config_train', default='/opt/ml/finalproject/multilabel/baseline/config/train.yaml', type=str, help='path of train configuration yaml file')
+    parser.add_argument('--config_train', default='/opt/ml/finalproject/multilabel/baseline/config/twostage_train.yaml', type=str, help='path of train configuration yaml file')
 
     args = parser.parse_args()
 
