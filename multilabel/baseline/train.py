@@ -233,7 +233,7 @@ def train(model_dir, config_train, config_dir):
             wandb_log["Train/mAP"] = metrics[1]
             wandb_log["Train/mF1"] = metrics[2]
 
-            wandb_log["Train/epoch"] = epoch + 1
+            wandb_log["epoch"] = epoch + 1
             wandb_log["learning_rate"] = get_lr(optimizer)
             wandb_log["Image/train image"] = fig
             wandb.log(wandb_log, step)
