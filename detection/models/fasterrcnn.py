@@ -36,7 +36,8 @@ class LitModel(LightningModule):
         #                         rpn_anchor_generator=self.anchor_generator,
         #                         box_roi_pool=self.roi_pooler)
         self.model = fasterrcnn_resnet50_fpn(num_classes=num_classes)
-
+        
+        self.class_aps = {str(i):[] for i in range(39)}
 
     def forward(self, imgs):
         self.model.eval()
@@ -78,7 +79,10 @@ class LitModel(LightningModule):
             target_idx = torch.tensor([i for i in range(len(target_labels))], device=target_labels.device) 
 
             iou_thres = 0.5
-            mAP = mean_average_precision(pred_idx, pred_scores, pred_labels, pred_boxes, target_idx, target_labels, target_boxes, iou_thres)
+            mAP, APs = mean_average_precision(pred_idx, pred_scores, pred_labels, pred_boxes, target_idx, target_labels, target_boxes, iou_thres)
+            for k,v in APs.items():
+                if v != -1.:
+                    self.class_aps[k].append(v)
             step_mAP += mAP.float()
         step_mAP /= len(outs)
         iou = torch.stack([_evaluate_iou(t, o) for t, o in zip(targets, outs)]).mean()
@@ -87,6 +91,7 @@ class LitModel(LightningModule):
     def validation_epoch_end(self, outs):
         total_mAP = torch.stack([o["val_mAP"] for o in outs]).mean()
         avg_iou = torch.stack([o["val_iou"] for o in outs]).mean()
+
         logs = {"val_iou": avg_iou}
         self.log("valid/val_iou", avg_iou)
         self.log("valid/total_mAP", total_mAP)

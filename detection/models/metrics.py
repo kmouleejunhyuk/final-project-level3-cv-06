@@ -16,8 +16,11 @@ def mean_average_precision(
     target_bboxes: Tensor,
     iou_threshold: float
 ) -> Tensor:
+    # pred_label = [0,3,7,19] target_label = [1,3,8,19,20] -> [0,3,7,19,1,3,8,19,20] -> [0,1,3,7,8,19,20]
+    # {0:0.5, 1:0.4 ..., 20:0.9}
     classes = torch.cat([pred_labels, target_labels]).unique()
     average_precisions = torch.zeros(len(classes))
+    class_ap_dict = {str(i):-1. for i in range(39)}
     for class_idx, c in enumerate(classes):
         # Descending indices w.r.t. class probability for class c
         desc_indices = torch.argsort(pred_probs, descending=True)[pred_labels == c]
@@ -55,7 +58,10 @@ def mean_average_precision(
         for threshold in recall_thresholds:
             points = precision[:-1][recall[:-1] >= threshold]
             average_precision += torch.max(points) / 101 if len(points) else 0
+        
+        class_ap_dict[str(c.item())] = float(average_precision)
 
         average_precisions[class_idx] = average_precision
     mean_average_precision = torch.mean(average_precisions)
-    return mean_average_precision
+    print('class_ap_dict', )
+    return mean_average_precision, class_ap_dict
