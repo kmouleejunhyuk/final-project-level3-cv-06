@@ -64,10 +64,10 @@ class multihead(nn.Module):
 
 
     def get_loss(self, outs, cls_outs, labels, criterion):
-        label_binary = self.get_binary_label(labels).to(torch.float32)
+        label_binary = self.get_binary_label(labels).to(torch.long) # .to(torch.float32)
         losses = []
         for out, label in zip(outs, label_binary):
-            _loss = criterion(out, label)
+            _loss = criterion(out, torch.max(label, dim=1)[1])
             losses.append(_loss)
         
         return torch.sum(torch.stack(losses))

@@ -1,13 +1,14 @@
 seed: 1004
-epochs: 10
-batch_size: 20
-workers: 1
+epochs: 50
+batch_size: 30
+workers: 2
 model: "multihead"  
 lr: 1e-4
 criterion: "cross_entropy"
 log_interval: 20
 schedule: False
-name: "multi-head_aug"
+name: "multi-head_celoss_fulltrain"
+augmentation: False
 
 optimizer: "adam"
 weight_decay: 1e-5
@@ -20,6 +21,7 @@ eta_min: 0
 step_size: 10
 gamma: 0.1
 
+# train_path: "/opt/ml/finalproject/data/train/full_train.json"
 train_path: "/opt/ml/finalproject/data/sampled/sampled_train.json"
 val_path:   "/opt/ml/finalproject/data/eval/eval.json"
 image_path: "/opt/ml/finalproject/data/"

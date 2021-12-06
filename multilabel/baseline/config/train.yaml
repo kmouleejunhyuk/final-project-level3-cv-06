@@ -7,7 +7,7 @@ lr: 1e-4
 criterion: "mse"
 log_interval: 20
 schedule: False
-name: "mseloss_clsupgrade_metric_test"
+name: "multi-head_aug"
 
 optimizer: "adam"
 weight_decay: 1e-5

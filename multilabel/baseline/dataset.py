@@ -67,7 +67,7 @@ class CustomDataLoader(Dataset):
         path = os.path.join(self.image_dir, self.mode, file_path[1:], file_name)
 
         images = cv2.imread(path)
-        images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB).astype(np.float32)
+        images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB)
 
         if self.mode in ("train", "eval", "sampled"):
             if self.transform is not None:
@@ -133,19 +133,45 @@ class ratio_aware_pad(ImageOnlyTransform):
         return img
 
 
+# train_transform = A.Compose([
+#     ratio_aware_pad(),
+#     A.augmentations.geometric.resize.Resize(512, 512),
+#     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
+#     ToTensorV2()
+# ])
+
+# val_transform = A.Compose([
+#     ratio_aware_pad(),
+#     A.augmentations.geometric.resize.Resize(512, 512),
+#     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
+#     ToTensorV2()
+# ])
+
 train_transform = A.Compose([
     ratio_aware_pad(),
-    A.augmentations.geometric.resize.Resize(512, 512),
-    A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
+    A.Resize(512, 512),
+    A.Normalize(),
+    ToTensorV2()
+])
+
+train_aug_transform = A.Compose([
+    ratio_aware_pad(),
+    A.Resize(512, 512),
+    A.OneOf([
+        A.CLAHE(always_apply=False, p=0.5, clip_limit=(6, 18), tile_grid_size=(20, 18)),
+        A.Sharpen(p=0.5)
+    ], p=1),
+    A.Normalize(),
     ToTensorV2()
 ])
 
 val_transform = A.Compose([
     ratio_aware_pad(),
-    A.augmentations.geometric.resize.Resize(512, 512),
-    A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
+    A.Resize(512, 512),
+    A.Normalize(),
     ToTensorV2()
 ])
+
 
 test_transform = A.Compose([
     ratio_aware_pad(),

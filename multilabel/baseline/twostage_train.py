@@ -122,13 +122,18 @@ def train(model_dir, config_train, config_dir):
     # dataset
     import sys
     sys.path.append('/opt/ml/finalproject/multilabel/baseline')
-    from dataset import train_transform, val_transform
+    from dataset import train_transform, val_transform, train_aug_transform
     
+    if config_train['augmentation'] == True:
+        tr_transform = train_aug_transform
+    else:
+        tr_transform = train_transform
+        
     train_dataset = CustomDataLoader(
         image_dir=config_train['image_path'], 
         data_dir=config_train['train_path'],
         mode="sampled", 
-        transform=train_transform
+        transform=tr_transform
     )
     val_dataset = CustomDataLoader(
         image_dir=config_train['image_path'], 
@@ -307,7 +312,7 @@ def train(model_dir, config_train, config_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--config_train', default='/opt/ml/finalproject/multilabel/baseline/config/twostage_train.yaml', type=str, help='path of train configuration yaml file')
+    parser.add_argument('--config_train', default='/opt/ml/finalproject/multilabel/baseline/config/multi_head_train.yaml', type=str, help='path of train configuration yaml file')
 
     args = parser.parse_args()
 
@@ -319,7 +324,7 @@ if __name__ == "__main__":
 
     # wandb init
     if config_train['wandb'] == True:
-        wandb.init(entity=config_train['entity'], project=config_train['project'])
+        wandb.init(entity=config_train['entity'], project=config_train['project'], config=config_train)
         wandb.run.name = config_train['name']
         wandb.config.update(args)
 
