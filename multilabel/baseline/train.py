@@ -317,6 +317,7 @@ if __name__ == "__main__":
         wandb.init(
             entity=config_train['entity'],
              project=config_train['project']
+             config=config_train
         )
         wandb.run.name = config_train['name']
         wandb.config.update(args)
