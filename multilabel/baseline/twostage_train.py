@@ -23,47 +23,45 @@ import shutil
 
 
 category_names = [
-    'Aerosol', 
-    'Alcohol', 
-    'Awl', 
-    'Axe', 
-    'Bat', 
-    'Battery', 
-    'Bullet', 
-    'Firecracker', 
-    'Gun', 
-    'GunParts', 
+    'Aerosol',
+    'Alcohol',
+    'Awl',
+    'Axe',
+    'Bat',
+    'Battery',
+    'Bullet',
+    'Firecracker',
+    'Gun',
+    'GunParts',
     'Hammer',
-    'HandCuffs', 
-    'HDD', 
-    'Knife', 
-    'Laptop', 
-    'Lighter', 
-    'Liquid', 
-    'Match', 
-    'MetalPipe', 
-    'NailClippers', 
-    'PortableGas', 
-    'Saw', 
-    'Scissors', 
+    'HandCuffs',
+    'HDD',
+    'Knife',
+    'Laptop',
+    'Lighter',
+    'Liquid',
+    'Match',
+    'MetalPipe',
+    'NailClippers',
+    'PortableGas',
+    'Saw',
+    'Scissors',
     'Screwdriver',
-    'SmartPhone', 
-    'SolidFuel', 
-    'Spanner', 
-    'SSD', 
-    'SupplymentaryBattery', 
-    'TabletPC', 
-    'Thinner', 
-    'USB', 
-    'ZippoOil', 
-    'Plier', 
-    'Chisel', 
+    'SmartPhone',
+    'SolidFuel',
+    'Spanner',
+    'SSD',
+    'SupplymentaryBattery',
+    'TabletPC',
+    'Thinner',
+    'USB',
+    'ZippoOil',
+    'Plier',
+    'Chisel',
     'Electronic cigarettes',
-    'Electronic cigarettes(Liquid)', 
+    'Electronic cigarettes(Liquid)',
     'Throwing Knife'
 ]
-
-
 
 
 def seed_everything(seed):
@@ -112,7 +110,8 @@ def train(model_dir, config_train, config_dir):
     seed_everything(config_train['seed'])
     save_dir = increment_path(os.path.join(model_dir, config_train['name']))
     createDirectory(save_dir)
-    shutil.copyfile(config_dir, os.path.join(save_dir, config_dir.split('/')[-1]))
+    shutil.copyfile(config_dir, os.path.join(
+        save_dir, config_dir.split('/')[-1]))
     print("pytorch version: {}".format(torch.__version__))
     print("GPU 사용 가능 여부: {}".format(torch.cuda.is_available()))
     use_cuda = torch.cuda.is_available()
@@ -123,17 +122,17 @@ def train(model_dir, config_train, config_dir):
     import sys
     sys.path.append('/opt/ml/finalproject/multilabel/baseline')
     from dataset import train_transform, val_transform
-    
+
     train_dataset = CustomDataLoader(
-        image_dir=config_train['image_path'], 
+        image_dir=config_train['image_path'],
         data_dir=config_train['train_path'],
-        mode="sampled", 
+        mode="sampled",
         transform=train_transform
     )
     val_dataset = CustomDataLoader(
-        image_dir=config_train['image_path'], 
-        data_dir=config_train['val_path'], 
-        mode="eval", 
+        image_dir=config_train['image_path'],
+        data_dir=config_train['val_path'],
+        mode="eval",
         transform=val_transform
     )
 
@@ -159,7 +158,7 @@ def train(model_dir, config_train, config_dir):
     # model
     N_CLASSES = 38
     model_module = getattr(import_module("model"), config_train['model'])
-    model = model_module(num_classes=N_CLASSES, cls_classes = 6, device = device)
+    model = model_module(num_classes=N_CLASSES, cls_classes=6, device=device)
     model = model.to(device)
 
     if config_train['wandb'] == True:
@@ -175,30 +174,30 @@ def train(model_dir, config_train, config_dir):
     best_val_EMR = -1
     best_val_loss = np.inf
     step = 0
-    
+
     for epoch in range(config_train['epochs']):
         # train loop
         model.train()
         train_emr = []
         train_confusion_matrix = np.zeros((38, 4))
-        for (images, labels) in tqdm(train_loader, desc = f'train/epoch {epoch}', leave = False, total=len(train_loader)):
+        for (images, labels) in tqdm(train_loader, desc=f'train/epoch {epoch}', leave=False, total=len(train_loader)):
             images = images.to(device)
-            
+
             optimizer.zero_grad()
             outs, cls_outs = model(images)
 
             loss = model.get_loss(
-                outs, 
+                outs,
                 cls_outs,
-                labels, 
+                labels,
                 criterion
             )
 
-            preds = top_k_labels(outs, cls_outs, identity = identity)
-            
+            preds = top_k_labels(outs, cls_outs, identity=identity)
+
             loss.backward()
             optimizer.step()
-            
+
             # EMR/loss
             images = images.detach().cpu()
             preds = preds.detach().cpu().numpy()
@@ -206,7 +205,7 @@ def train(model_dir, config_train, config_dir):
 
             matrix = get_confusion_matrix(preds, labels)
             train_confusion_matrix += np.array(matrix)
-            train_emr.append(np.mean((preds == labels).min(axis = 1)))
+            train_emr.append(np.mean((preds == labels).min(axis=1)))
 
             if config_train['wandb'] == True:
                 wandb_log = {}
@@ -214,7 +213,7 @@ def train(model_dir, config_train, config_dir):
                 wandb_log["Train/loss"] = round(loss.item(), 4)
                 wandb.log(wandb_log, step)
             step += 1
-        
+
         if scheduler:
             scheduler.step()
 
@@ -228,7 +227,8 @@ def train(model_dir, config_train, config_dir):
 
             wandb_log["Train/epoch"] = epoch + 1
             wandb_log["learning_rate"] = get_lr(optimizer)
-            wandb_log["Image/train image"] = draw_batch_images(images, labels, preds, category_names)
+            wandb_log["Image/train image"] = draw_batch_images(
+                images, labels, preds, category_names)
             wandb.log(wandb_log, step)
 
         # val loop
@@ -240,23 +240,23 @@ def train(model_dir, config_train, config_dir):
             val_len = len(val_loader)
             valid_emr = []
 
-            for (images, labels) in tqdm(val_loader, desc = f'val/epoch {epoch}', leave = False, total=val_len):
+            for (images, labels) in tqdm(val_loader, desc=f'val/epoch {epoch}', leave=False, total=val_len):
                 images = images.to(device)
-                
+
                 outs, cls_outs = model(images)
 
                 loss = model.get_loss(
-                    outs, 
-                    cls_outs, 
-                    labels, 
+                    outs,
+                    cls_outs,
+                    labels,
                     criterion
                 )
                 preds = top_k_labels(
-                    outs, 
+                    outs,
                     cls_outs,
-                    identity = identity
+                    identity=identity
                 )
-                
+
                 val_epoch_loss += loss.detach().item()
 
                 # recall, precision, f1
@@ -266,14 +266,15 @@ def train(model_dir, config_train, config_dir):
 
                 matrix = get_confusion_matrix(preds, labels)
                 val_confusion_matrix += np.array(matrix)
-                valid_emr.append(np.mean((preds == labels).min(axis = 1)))
+                valid_emr.append(np.mean((preds == labels).min(axis=1)))
 
             val_epoch_loss /= val_len
 
             best_val_loss = min(best_val_loss, val_epoch_loss)
             valid_emr = np.mean(valid_emr)
             if valid_emr > best_val_EMR:
-                print(f"New best model for EMR : {valid_emr:4.2%}! saving the best model..")
+                print(
+                    f"New best model for EMR : {valid_emr:4.2%}! saving the best model..")
                 before_file = glob.glob(os.path.join(save_dir, 'best.pth'))
                 if before_file:
                     os.remove(before_file[0])
@@ -281,13 +282,14 @@ def train(model_dir, config_train, config_dir):
                 best_val_EMR = valid_emr
             torch.save(model.state_dict(), f"{save_dir}/last.pth")
 
-                
             if config_train['wandb'] == True:
-                label_metric, (mAR, mAP, mF1) = get_metrics_from_matrix(val_confusion_matrix)
+                label_metric, (mAR, mAP, mF1) = get_metrics_from_matrix(
+                    val_confusion_matrix)
                 # wandb log
                 wandb_log = {}
                 wandb_log["Valid/Valid loss"] = round(val_epoch_loss, 4)
-                wandb_log["Image/Valid image"] = draw_batch_images(images.detach().cpu(), labels, preds, category_names)
+                wandb_log["Image/Valid image"] = draw_batch_images(
+                    images.detach().cpu(), labels, preds, category_names)
                 wandb_log["epoch"] = epoch + 1
                 wandb_log["Valid/EMR"] = valid_emr
 
@@ -307,7 +309,8 @@ def train(model_dir, config_train, config_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--config_train', default='/opt/ml/finalproject/multilabel/baseline/config/twostage_train.yaml', type=str, help='path of train configuration yaml file')
+    parser.add_argument('--config_train', default='/opt/ml/finalproject/multilabel/baseline/config/twostage_train.yaml',
+                        type=str, help='path of train configuration yaml file')
 
     args = parser.parse_args()
 
@@ -319,7 +322,8 @@ if __name__ == "__main__":
 
     # wandb init
     if config_train['wandb'] == True:
-        wandb.init(entity=config_train['entity'], project=config_train['project'])
+        wandb.init(entity=config_train['entity'],
+                   project=config_train['project'], config=config_train)
         wandb.run.name = config_train['name']
         wandb.config.update(args)
 
