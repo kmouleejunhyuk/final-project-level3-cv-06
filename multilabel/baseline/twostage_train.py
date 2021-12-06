@@ -126,7 +126,7 @@ def train(model_dir, config_train, config_dir):
     train_dataset = CustomDataLoader(
         image_dir=config_train['image_path'],
         data_dir=config_train['train_path'],
-        mode="sampled",
+        mode="sampled", #set train to full-train
         transform=train_transform
     )
     val_dataset = CustomDataLoader(
@@ -228,7 +228,7 @@ def train(model_dir, config_train, config_dir):
             wandb_log["Train/epoch"] = epoch + 1
             wandb_log["learning_rate"] = get_lr(optimizer)
             wandb_log["Image/train image"] = draw_batch_images(
-                images, labels, preds, category_names)
+                images, labels, preds, category_names, identity)
             wandb.log(wandb_log, step)
 
         # val loop
@@ -289,7 +289,7 @@ def train(model_dir, config_train, config_dir):
                 wandb_log = {}
                 wandb_log["Valid/Valid loss"] = round(val_epoch_loss, 4)
                 wandb_log["Image/Valid image"] = draw_batch_images(
-                    images.detach().cpu(), labels, preds, category_names)
+                    images.detach().cpu(), labels, preds, category_names, identity)
                 wandb_log["epoch"] = epoch + 1
                 wandb_log["Valid/EMR"] = valid_emr
 

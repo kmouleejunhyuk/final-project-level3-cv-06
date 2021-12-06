@@ -77,3 +77,92 @@ class multihead(nn.Module):
         counterpart = _ones - labels
         cats = torch.stack([counterpart, labels], axis = 0)
         return cats.permute(1,2,0).to(self.device)
+
+
+class multihead_with_seq(nn.Module):
+    def __init__(self, num_classes, cls_classes, device):
+        super().__init__()
+        self.backbone = models.resnet101(pretrained=True)
+        self.backbone.fc = nn.Identity()
+        self.device = device
+
+        mlist = []
+        for _ in range(38):
+            if _ in [1, 30]:
+                seq = nn.Sequential(
+                    nn.Linear(2048, 512),
+                    nn.ReLU(),
+                    nn.Linear(512, 128),
+                    nn.ReLU(),
+                    nn.Linear(128, 2),
+                )
+                mlist.append(seq)
+            else:
+                mlist.append(nn.Linear(2048, 2))
+
+        self.fcs = nn.ModuleList(mlist)
+    def forward(self, inputs):
+        feat = self.backbone(inputs)
+        vecs = []
+        for fc in self.fcs:
+            vec = fc(feat)
+            vecs.append(vec)
+        
+        stack = torch.stack(vecs, axis = 0)
+        return stack.permute(1,0,2), 0
+
+
+    def get_loss(self, outs, cls_outs, labels, criterion):
+        label_binary = self.get_binary_label(labels).to(torch.float32)
+        losses = []
+        for out, label in zip(outs, label_binary):
+            _loss = criterion(out, label)
+            losses.append(_loss)
+        
+        return torch.sum(torch.stack(losses))
+
+    def get_binary_label(self, labels):
+        _ones = torch.ones((labels.shape))
+        counterpart = _ones - labels
+        cats = torch.stack([counterpart, labels], axis = 0)
+        return cats.permute(1,2,0).to(self.device)
+
+
+class multihead_with_quant(nn.Module):
+    def __init__(self, num_classes, cls_classes, device):
+        super().__init__()
+        self.backbone = models.resnet101(pretrained=True)
+        self.backbone.fc = nn.Identity()
+        self.fcs = nn.ModuleList([nn.Linear(2048, 2) for _ in range(num_classes)])
+        self.device = device
+        self.quant = torch.quantization.QuantStub()
+        self.dequant = torch.quantization.DeQuantStub()
+
+    def forward(self, inputs):
+        inputs = self.quant(inputs)
+        feat = self.backbone(inputs)
+        vecs = []
+        for fc in self.fcs:
+            vec = fc(feat)
+            vecs.append(vec)
+        
+        stack = torch.stack(vecs, axis = 0)
+        stack = stack.permute(1,0,2)
+        
+        return self.dequant(stack), 0
+
+
+    def get_loss(self, outs, cls_outs, labels, criterion):
+        label_binary = self.get_binary_label(labels).to(torch.float32)
+        losses = []
+        for out, label in zip(outs, label_binary):
+            _loss = criterion(out, label)
+            losses.append(_loss)
+        
+        return torch.sum(torch.stack(losses))
+
+    def get_binary_label(self, labels):
+        _ones = torch.ones((labels.shape))
+        counterpart = _ones - labels
+        cats = torch.stack([counterpart, labels], axis = 0)
+        return cats.permute(1,2,0).to(self.device)
