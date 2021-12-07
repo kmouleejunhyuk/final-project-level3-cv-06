@@ -34,7 +34,7 @@ def train_model(model_name, save_name=None, **kwargs):
     if save_name is None:
         save_name = model_name
 
-    wandb_logger = WandbLogger(entity='cider6', project='pytorch_lightning', name='resnet50_nopadding')
+    wandb_logger = WandbLogger(entity='cider6', project='pytorch_lightning', name='resnet50_nopadding_full_noaug')
 
     # Create a PyTorch Lightning trainer with the generation callback
     trainer = pl.Trainer(

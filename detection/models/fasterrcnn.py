@@ -21,6 +21,15 @@ class LitModel(LightningModule):
     def __init__(self):
         super().__init__()
         num_classes = 39 # include background (0: background)
+        self.classes = {1: 'Aerosol', 2: 'Alcohol', 3: 'Awl', 4: 'Axe', 5: 'Bat',
+                        6: 'Battery', 7: 'Bullet', 8: 'Firecracker', 9: 'Gun', 10: 'GunParts',
+                        11: 'Hammer', 12: 'HandCuffs', 13: 'HDD', 14: 'Knife', 15: 'Laptop',
+                        16: 'Lighter', 17: 'Liquid', 18: 'Match', 19: 'MetalPipe',
+                        20: 'NailClippers', 21: 'PrtableGas', 22: 'Saw', 23: 'Scissors',
+                        24: 'Screwdriver', 25: 'SmartPhone', 26: 'SolidFuel', 27: 'Spanner',
+                        28: 'SSD', 29: 'SupplymentaryBattery', 30: 'TabletPC', 31: 'Thinner',
+                        32: 'USB', 33: 'ZippoOil', 34: 'Plier', 35: 'Chisel',
+                        36: 'Electronic cigarettes', 37: 'Electronic cigarettesLiquid', 38: 'Throwing Knife'}
         # self.backbone = torchvision.models.resnet50(pretrained=True)
         # del self.backbone.fc
         # self.backbone = torchvision.models.mobilenet_v2(pretrained=True).features
@@ -93,12 +102,12 @@ class LitModel(LightningModule):
         avg_iou = torch.stack([o["val_iou"] for o in outs]).mean()
         total_list = []
         for k,v in self.class_aps.items():
-            tmp = 0
-            if len(v) != 0:
-                tmp = sum(v)/ len(v)
-            self.log(f"{k}", tmp)
-            total_list.append(tmp)
-        print("total_list: ", total_list)
+            if int(k) != 0:
+                tmp = 0
+                if len(v) != 0:
+                    tmp = sum(v)/ len(v)
+                self.log(f"classes/{self.classes[int(k)]}", tmp)
+                total_list.append(tmp)
         logs = {"val_iou": avg_iou}
         self.log("valid/val_iou", avg_iou)
         self.log("valid/total_mAP", total_mAP)
