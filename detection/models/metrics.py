@@ -63,5 +63,4 @@ def mean_average_precision(
 
         average_precisions[class_idx] = average_precision
     mean_average_precision = torch.mean(average_precisions)
-    print('class_ap_dict', )
     return mean_average_precision, class_ap_dict

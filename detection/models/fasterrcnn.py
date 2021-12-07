@@ -91,7 +91,14 @@ class LitModel(LightningModule):
     def validation_epoch_end(self, outs):
         total_mAP = torch.stack([o["val_mAP"] for o in outs]).mean()
         avg_iou = torch.stack([o["val_iou"] for o in outs]).mean()
-
+        total_list = []
+        for k,v in self.class_aps.items():
+            tmp = 0
+            if len(v) != 0:
+                tmp = sum(v)/ len(v)
+            self.log(f"{k}", tmp)
+            total_list.append(tmp)
+        print("total_list: ", total_list)
         logs = {"val_iou": avg_iou}
         self.log("valid/val_iou", avg_iou)
         self.log("valid/total_mAP", total_mAP)
