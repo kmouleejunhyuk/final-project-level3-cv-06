@@ -132,7 +132,7 @@ def train(model_dir, config_train, config_dir):
     train_dataset = CustomDataLoader(
         image_dir=config_train['image_path'], 
         data_dir=config_train['train_path'],
-        mode="sampled", 
+        mode="train", 
         transform=tr_transform
     )
     val_dataset = CustomDataLoader(
