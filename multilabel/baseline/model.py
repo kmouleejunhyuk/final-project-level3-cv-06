@@ -137,6 +137,7 @@ class multihead_with_quant(nn.Module):
         self.device = device
         self.quant = torch.quantization.QuantStub()
         self.dequant = torch.quantization.DeQuantStub()
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, inputs):
         inputs = self.quant(inputs)
@@ -148,8 +149,8 @@ class multihead_with_quant(nn.Module):
         
         stack = torch.stack(vecs, axis = 0)
         stack = stack.permute(1,0,2)
-        
-        return self.dequant(stack), 0
+        out = self.dequant(stack)
+        return self.sigmoid(out), 0
 
 
     def get_loss(self, outs, cls_outs, labels, criterion):

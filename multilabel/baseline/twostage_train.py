@@ -126,7 +126,7 @@ def train(model_dir, config_train, config_dir):
     train_dataset = CustomDataLoader(
         image_dir=config_train['image_path'],
         data_dir=config_train['train_path'],
-        mode="sampled", #set train to full-train
+        mode="train", #set train to full-train
         transform=train_transform
     )
     val_dataset = CustomDataLoader(
@@ -322,8 +322,11 @@ if __name__ == "__main__":
 
     # wandb init
     if config_train['wandb'] == True:
-        wandb.init(entity=config_train['entity'],
-                   project=config_train['project'], config=config_train)
+        wandb.init(
+            entity=config_train['entity'],
+            project=config_train['project'], 
+            config=config_train
+        )
         wandb.run.name = config_train['name']
         wandb.config.update(args)
 
