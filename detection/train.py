@@ -48,8 +48,8 @@ def train_model(model_name, save_name=None, **kwargs):
         # 
         logger=wandb_logger,
         callbacks=[
-            EarlyStopping(monitor="valid/total_mAP", patience=10, verbose=False, mode="max"),
-            ModelCheckpoint(save_weights_only=True, mode='max', monitor='valid/total_mAP') # Save the best checkpoint based on the maximum val_acc recorded. Saves only weights and not optimizer
+            EarlyStopping(monitor="valid/val_mAP", patience=10, verbose=False, mode="max"),
+            ModelCheckpoint(save_weights_only=True, mode='max', monitor='valid/val_mAP') # Save the best checkpoint based on the maximum val_acc recorded. Saves only weights and not optimizer
         ],  # Log learning rate every epoch
         # progress_bar_refresh_rate=1
     )  # In case your notebook crashes due to the progress bar, consider increasing the refresh rate
