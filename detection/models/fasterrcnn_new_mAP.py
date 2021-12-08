@@ -118,9 +118,7 @@ class LitModel(LightningModule):
             self.log("valid/val_mAP_m", result['map_medium'])
             self.log("valid/val_mAP_l", result['map_large'])
             for i,v in enumerate(result['map_per_class'].tolist()):
-                if i == 0:
-                    continue
-                self.log(f"classes/{self.classes[int(i)]}", v)
+                self.log(f"classes/{self.classes[int(i)+1]}", v)
 
     def validation_epoch_end(self, outs):
         avg_iou = torch.stack([o["val_iou"] for o in outs]).mean()
