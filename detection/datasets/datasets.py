@@ -104,4 +104,3 @@ def valid_transform():
         A.Resize(1024, 1024),
         ToTensorV2()
     ], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})
-
