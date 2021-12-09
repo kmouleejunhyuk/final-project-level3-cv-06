@@ -11,7 +11,7 @@ from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
 
 from datasets.dataModule import CustomDataModule
-from models.fasterrcnn import LitModel
+from models.fasterrcnn_new_mAP import LitModel
 
 # Path to the folder where the pretrained models are saved
 CHECKPOINT_PATH = "/opt/ml/finalproject/detection/saved_models/"
@@ -34,7 +34,7 @@ def train_model(model_name, save_name=None, **kwargs):
     if save_name is None:
         save_name = model_name
 
-    wandb_logger = WandbLogger(entity='cider6', project='pytorch_lightning', name='resnet50_nopadding_full_noaug')
+    wandb_logger = WandbLogger(entity='cider6', project='pytorch_lightning', name='resnet50_eval_sampled')
 
     # Create a PyTorch Lightning trainer with the generation callback
     trainer = pl.Trainer(
@@ -45,7 +45,7 @@ def train_model(model_name, save_name=None, **kwargs):
         precision=16,
         # How many epochs to train for if no patience is set
         max_epochs=100,
-        # 
+        # wandb logger
         logger=wandb_logger,
         callbacks=[
             EarlyStopping(monitor="valid/val_mAP", patience=10, verbose=False, mode="max"),

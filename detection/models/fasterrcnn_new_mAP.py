@@ -1,21 +1,15 @@
+from pathlib import Path
+
+import numpy as np
 import torch
-import torch.nn as nn
-import torchvision
 from pytorch_lightning import LightningModule
-from torchvision.models.detection import FasterRCNN, fasterrcnn_resnet50_fpn
-from torchvision.models.detection.rpn import AnchorGenerator
+from torchmetrics import MAP
+from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.ops import box_iou
 
-from torchmetrics import MAP
+from models.metrics import ConfusionMatrix
+from models.save_fig import inference_figure
 
-
-def _evaluate_iou(target, pred):
-    """Evaluate intersection over union (IOU) for target from dataset and output prediction from model."""
-
-    if pred["boxes"].shape[0] == 0:
-        # no box detected, 0 IOU
-        return torch.tensor(0.0, device=pred["boxes"].device)
-    return box_iou(target["boxes"], pred["boxes"]).diag().mean()
 
 class LitModel(LightningModule):
     def __init__(self):
@@ -30,24 +24,14 @@ class LitModel(LightningModule):
                         28: 'SSD', 29: 'SupplymentaryBattery', 30: 'TabletPC', 31: 'Thinner',
                         32: 'USB', 33: 'ZippoOil', 34: 'Plier', 35: 'Chisel',
                         36: 'Electronic cigarettes', 37: 'Electronic cigarettesLiquid', 38: 'Throwing Knife'}
-        # self.backbone = torchvision.models.resnet50(pretrained=True)
-        # del self.backbone.fc
-        # self.backbone = torchvision.models.mobilenet_v2(pretrained=True).features
-        # self.backbone.out_channels = 1280
-
-        # self.anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 256),),
-        #                                         aspect_ratios=((0.5, 1.0, 2.0),))
-        # self.roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],
-        #                                                      output_size=7,
-        #                                                      sampling_ratio=2)
-        # self.model = FasterRCNN(backbone=self.backbone,
-        #                         num_classes=num_classes,
-        #                         rpn_anchor_generator=self.anchor_generator,
-        #                         box_roi_pool=self.roi_pooler)
+        
         self.model = fasterrcnn_resnet50_fpn(num_classes=num_classes)
         
         self.class_aps = {str(i):[] for i in range(39)}
         self.val_map = MAP(class_metrics=True, dist_sync_on_step=True, )
+        self.conf_mat = ConfusionMatrix(num_classes=num_classes-1)
+        self.conf_mat_columns = [v for k, v in self.classes.items()]
+        self.cnt = 0
 
     def forward(self, imgs):
         self.model.eval()
@@ -73,21 +57,23 @@ class LitModel(LightningModule):
         self.log('Train/loss_objectness', loss_objectness)
         self.log('Train/loss_rpn_box_reg', loss_rpn_box_reg)
 
+    def on_validation_epoch_start(self) -> None:
+        self.val_map.reset()
+        self.cnt = 0
+
     def validation_step(self, batch, batch_idx):
-        imgs, targets = batch
-        outs = self.model(imgs)
-        preds = []
-        target = []
-        for j,o in enumerate(outs):
+        self.cnt += 1
+        imgs, targets = batch # imgs = [batch, 3, img_size, img_size] / targets = [{'boxes':[], 'labels':[]}]
+        outs = self.model(imgs) # outs = [{'boxes':[], 'labels':[], 'scores':[]}]
+        preds, target = [], []
+        for j, o in enumerate(outs):
             pred_boxes = o['boxes']
             pred_labels = o['labels']
             pred_scores = o['scores']
-            pred_idx = torch.tensor([i for i in range(len(pred_labels))], device=pred_labels.device)
-
+            
             target_boxes = targets[j]['boxes']
             target_labels = targets[j]['labels']
-            target_idx = torch.tensor([i for i in range(len(target_labels))], device=target_labels.device) 
-
+            
             preds.append({
                 'boxes': pred_boxes,
                 'labels': pred_labels,
@@ -97,20 +83,24 @@ class LitModel(LightningModule):
                 'boxes': target_boxes,
                 'labels': target_labels
             })
-        self.val_map.update(preds=preds, target=target)
-        iou = torch.stack([_evaluate_iou(t, o) for t, o in zip(targets, outs)]).mean()
-        return {"val_iou": iou}
 
-    def on_validation_epoch_start(self) -> None:
-        self.val_map.reset()
+            pred = np.array([[*box.cpu().numpy(), score.cpu().item(), label.cpu().item()] for box, score, label in zip(pred_boxes, pred_scores, pred_labels)])
+            label = np.array([[label.cpu().item(), *box.cpu().numpy()] for label, box in zip(target_labels, target_boxes)])
+
+        if self.cnt % 170 == 0:
+            figure = inference_figure(imgs, preds, target, self.classes, save_dir='/opt/ml/finalproject/detection')
+            figure.savefig(Path('/opt/ml/finalproject/detection') / 'valid_inference.png', dpi=250)
+            self.logger.log_image(key="inference", images=['/opt/ml/finalproject/detection/valid_inference.png'])
+
+        self.val_map.update(preds=preds, target=target)
+        self.conf_mat.process_batch(detections=pred, labels=label)
 
     def on_validation_epoch_end(self) -> None:
         if self.trainer.global_step != 0:
             print(
                 f"Running val metric on {len(self.val_map.groundtruth_boxes)} samples"
             )
-            result = self.val_map.compute()  # GPUs get stuck here
-            print(result)
+            result = self.val_map.compute()
             self.log("valid/val_mAP", result['map'])
             self.log("valid/val_mAP_50", result['map_50'])
             self.log("valid/val_mAP_75", result['map_75'])
@@ -119,14 +109,10 @@ class LitModel(LightningModule):
             self.log("valid/val_mAP_l", result['map_large'])
             for i,v in enumerate(result['map_per_class'].tolist()):
                 self.log(f"classes/{self.classes[int(i)+1]}", v)
+        
+        self.conf_mat.plot(save_dir='/opt/ml/finalproject/detection', names=self.conf_mat_columns)
+        self.logger.log_image(key="confusion", images=['/opt/ml/finalproject/detection/confusion_matrix.png'])
 
-    def validation_epoch_end(self, outs):
-        avg_iou = torch.stack([o["val_iou"] for o in outs]).mean()
-
-        logs = {"val_iou": avg_iou}
-        self.log("valid/val_iou", avg_iou)
-        return {"valid/avg_val_iou": avg_iou, "log": logs}
-    
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-4)
         return optimizer
