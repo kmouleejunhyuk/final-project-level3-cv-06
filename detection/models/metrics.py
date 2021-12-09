@@ -68,19 +68,13 @@ def mean_average_precision(
 
 
 class ConfusionMatrix:
-    def __init__(self, num_classes=39, conf_threshold=0.3, iou_threshold=0.5):
+    def __init__(self, num_classes: int, CONF_THRESHOLD=0.3, IOU_THRESHOLD=0.5):
         self.matrix = np.zeros((num_classes + 1, num_classes + 1))
         self.num_classes = num_classes
-        self.conf_threshold = conf_threshold
-        self.iou_threshold = iou_threshold
+        self.CONF_THRESHOLD = CONF_THRESHOLD
+        self.IOU_THRESHOLD = IOU_THRESHOLD
 
-    def process_batch(self,
-                      pred_probs: Tensor,
-                      pred_labels: Tensor,
-                      pred_bboxes: Tensor,
-                      target_labels: Tensor,
-                      target_bboxes: Tensor
-    ):
+    def process_batch(self, detections, labels: np.ndarray):
         """
         Return intersection-over-union (Jaccard index) of boxes.
         Both sets of boxes are expected to be in (x1, y1, x2, y2) format.
@@ -90,45 +84,48 @@ class ConfusionMatrix:
         Returns:
             None, updates confusion matrix accordingly
         """
-        gt_classes = target_labels.astype(np.int16)
+        gt_classes = labels[:, 0].astype(np.int16)
 
         try:
-            detections = pred_probs[pred_probs > self.conf_threshold]
+            detections = detections[detections[:, 4] > self.CONF_THRESHOLD]
         except IndexError or TypeError:
             # detections are empty, end of process
-            for i, label in enumerate(target_labels):
+            for i, label in enumerate(labels):
                 gt_class = gt_classes[i]
                 self.matrix[self.num_classes, gt_class] += 1
             return
-        
-        detection_classes = pred_labels.astype(np.int16)
 
-        all_ious = box_iou(torch.unsqueeze(pred_bboxes, dim=0), target_bboxes)
-        want_idx = np.where(all_ious > self.iou_threshold)
+        detection_classes = detections[:, 5].astype(np.int16)
+
+        all_ious = box_iou_calc(labels[:, 1:], detections[:, :4])
+        want_idx = np.where(all_ious > self.IOU_THRESHOLD)
 
         all_matches = [[want_idx[0][i], want_idx[1][i], all_ious[want_idx[0][i], want_idx[1][i]]]
-                        for i in range(want_idx[0].shape[0])]
-        
+                       for i in range(want_idx[0].shape[0])]
+
         all_matches = np.array(all_matches)
-        if all_matches.shape[0] > 0: # if there is match
+        if all_matches.shape[0] > 0:  # if there is match
             all_matches = all_matches[all_matches[:, 2].argsort()[::-1]]
+
             all_matches = all_matches[np.unique(all_matches[:, 1], return_index=True)[1]]
+
             all_matches = all_matches[all_matches[:, 2].argsort()[::-1]]
+
             all_matches = all_matches[np.unique(all_matches[:, 0], return_index=True)[1]]
 
-        for i, label in enumerate(target_labels):
+        for i, label in enumerate(labels):
             gt_class = gt_classes[i]
             if all_matches.shape[0] > 0 and all_matches[all_matches[:, 0] == i].shape[0] == 1:
                 detection_class = detection_classes[int(all_matches[all_matches[:, 0] == i, 1][0])]
                 self.matrix[detection_class, gt_class] += 1
             else:
                 self.matrix[self.num_classes, gt_class] += 1
-        
-        for i, detection in enumerate(pred_labels):
+
+        for i, detection in enumerate(detections):
             if all_matches.shape[0] and all_matches[all_matches[:, 1] == i].shape[0] == 0:
                 detection_class = detection_classes[i]
                 self.matrix[detection_class, self.num_classes] += 1
-    
+
     def return_matrix(self):
         return self.matrix
 
