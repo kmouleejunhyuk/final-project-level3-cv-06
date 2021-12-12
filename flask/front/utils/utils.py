@@ -4,9 +4,6 @@ import numpy as np
 from PIL import Image
 from .distance import findEuclideanDistance
 
-from tensorflow.keras.preprocessing import image
-from mtcnn import MTCNN
-
 
 def load_image(img_path):
     img = cv2.imread(img_path)
@@ -71,41 +68,10 @@ def alignment(img, left_eye, right_eye):
 
 
 def face_detect(img):
-	face_detector = MTCNN()
-	detections = face_detector.detect_faces(img)
-	# print(detections) # [{'box': [109, 111, 189, 258], 'confidence': 0.9999929666519165, 'keypoints': {'left_eye': (147, 210), 'right_eye': (230, 213), 'nose': (166, 257), 'mouth_left': (143, 309), 'mouth_right': (217, 313)}}]
-
-	detected_faces = []
-	face_locations = []
-	if len(detections) > 0:
-		for detection in detections:
-			x, y, w, h = detection['box']
-			detected_face = img[int(y):int(y+h), int(x):int(x+w)]
-
-			keypoints = detection['keypoints']
-			left_eye = keypoints['left_eye']
-			right_eye = keypoints['right_eye']
-
-			detected_face = alignment(detected_face, left_eye, right_eye)
-			detected_faces.append(detected_face)
-			face_locations.append([x, y, w, h])
-		
-		return detected_faces, face_locations
-	
-	else: # if not face detected
-		raise ValueError("Face could not be detected. Please confirm that the picture is a face photo or consider to set enforce_detection param to False.")
-
+	pass
 
 def face_preprocess(imgs, target_size=(224, 224)): # VGG (224, 224) / OpenFace (96, 96) / Facenet (160, 160) / DeepID (47, 55)
-	imgs_pixs = []
-	for img in imgs:		
-		# post-processing
-		img = cv2.resize(img, target_size)
-		img_pixs = image.img_to_array(img)
-		img_pixs = np.expand_dims(img_pixs, axis=0)
-		img_pixs /= 255 # normalize [0,1]
-		imgs_pixs.append(img_pixs)
-	return imgs_pixs
+	pass
 
 
 def find_input_shape(model):

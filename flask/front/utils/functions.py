@@ -2,14 +2,7 @@ import cv2
 import numpy as np
 from PIL import Image
 import math
-
-from mtcnn import MTCNN
 from .distance import findEuclideanDistance
-from tensorflow.keras.preprocessing import image
-
-
-global face_detector
-face_detector = MTCNN()
 
 
 def initialize_input(img1_path, img2_path = None):
@@ -33,23 +26,7 @@ def initialize_input(img1_path, img2_path = None):
 
 
 def detect_face(img, enforce_detection = True):
-    img_region = [0, 0, img.shape[0], img.shape[1]]
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # mtcnn expects RGB but OpenCV read BGR
-    detections = face_detector.detect_faces(img_rgb)
-
-    if len(detections) > 0:
-        detection = detections[0]
-        x, y, w, h = detection['box']
-        detected_face = img[int(y):int(y+h), int(x):int(x+w)]
-        return detected_face, [x, y, w, h]
-    
-    else: #if no face detected
-        if not enforce_detection:			
-            return img, img_region
-
-        else:
-            raise ValueError("Face could not be detected. Please confirm that the picture is a face photo or consider to set enforce_detection param to False.")
-
+    pass
 
 def find_input_shape(model):
 	# face recognition models have different size of inputs
@@ -113,48 +90,8 @@ def alignment_procedure(img, left_eye, right_eye):
 
 
 def align_face(img):
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # mtcnn expects RGB but OpenCV read BGR
-    detections = face_detector.detect_faces(img_rgb)
-
-    if len(detections) > 0:
-        detection = detections[0]
-
-        keypoints = detection['keypoints']
-        left_eye = keypoints['left_eye']
-        right_eye = keypoints['right_eye']
-
-        img = alignment_procedure(img, left_eye, right_eye)
-    
-    return img # return img anyway
+    pass
 
 
 def preprocess_face(img, target_size=(224, 224), enforce_detection = True, detector_backend = 'opencv', return_region = False):
-	
-	# img_path = copy.copy(img)
-	
-	# img might be path, base64 or numpy array. Convert it to numpy whatever it is.
-	img = cv2.imread(img)
-	base_img = img.copy()
-	
-	img, region = detect_face(img = img, enforce_detection = enforce_detection)
-	
-	#--------------------------
-	if img.shape[0] > 0 and img.shape[1] > 0:
-		img = align_face(img)
-	else:
-		if enforce_detection == True:
-			raise ValueError("Detected face shape is ", img.shape,". Consider to set enforce_detection argument to False.")
-		else: #restore base image 
-			img = base_img.copy()
-		
-	#--------------------------
-	#post-processing
-	img = cv2.resize(img, target_size)
-	img_pixels = image.img_to_array(img)
-	img_pixels = np.expand_dims(img_pixels, axis = 0)
-	img_pixels /= 255 #normalize input in [0, 1]
-	
-	if return_region == True:
-		return img_pixels, region
-	else:
-		return img_pixels
+	pass
