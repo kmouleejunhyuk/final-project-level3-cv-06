@@ -126,12 +126,12 @@ class multihead(nn.Module):
     use_cuda = torch.cuda.is_available()
 
 
-def get_model(model_weight_dir = '/opt/ml/runs/mseloss_clsupgrade_multihead_with_quant/last.pth'):
+def get_model(model_weight_dir = '/opt/ml/tmp/multi-head_celoss_fulltrain_best.pth'):
     model = multihead(38, 6, 'cuda')
     model = model.to('cuda')
     state_dict = torch.load(model_weight_dir)
     model.load_state_dict(state_dict)
-    model.train()
+    model.eval()
     print('loaded')
 
     return model
