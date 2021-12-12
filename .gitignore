@@ -17,3 +17,22 @@ detection/lightning_logs/*
 detection/wandb/*
 detection/data
 detection/saved_models/*
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+data/eval
+data/train
+data/sampled
+
+*.DS_Store
+*.json
+*.pkl
+tmp/
+runs/
+*.out
+wandb
+
+# personal ignore root
+personal/
+
