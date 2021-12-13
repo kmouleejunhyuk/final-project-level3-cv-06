@@ -80,6 +80,9 @@ val_transform = A.Compose([
 
 @timer
 def get_multilabel_prediction(model, image):
+    '''
+    return tensor ex) [0,0,0,0,0,1,0,0,1,0,1,0,0,0,1,0]
+    '''
     image = image.convert('RGB')
     image = np.array(image)
     image = val_transform(image = image)['image'].unsqueeze(0).to(DEVICE)
@@ -90,6 +93,9 @@ def get_multilabel_prediction(model, image):
 
 
 def get_multilabel_prediction_toLabel(model, image):
+    '''
+    return label ex) [knife, usb, ...]
+    '''
     pred = get_multilabel_prediction(model, image)
 
     labels = []
@@ -101,6 +107,9 @@ def get_multilabel_prediction_toLabel(model, image):
 
 
 def get_multilabel_prediction_toindex(model, image):
+    '''
+    return index ex) [10, 15, 30, ...]
+    '''
     pred = get_multilabel_prediction(model, image)
 
     index = []
