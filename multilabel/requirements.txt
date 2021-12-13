@@ -18,4 +18,4 @@ yapf
 pillow
 imgaug
 grad-cam
-
+easydict

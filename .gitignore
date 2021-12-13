@@ -12,7 +12,9 @@ tmp/
 runs/
 *.out
 wandb
+*.pth
 
 # personal ignore root
 personal/
-
+streamlit/
+final_project_level3_cv_06.egg-info/

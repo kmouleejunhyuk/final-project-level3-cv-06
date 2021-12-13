@@ -1,0 +1,53 @@
+static : 
+  directiory : "static"
+  url : "static"
+router :
+  dir_path : "routes"
+  lib_path : "app.routes."
+multilabel_model:
+  name : "multihead"
+  root : "../multilabel/baseline/"
+  save_path : "save/multi-head_celoss_fulltrain_best.pth"
+  num_classes : 38
+  cls_classes : 6
+  image_path : "multilabel_pred"
+device : "cuda"
+classes:
+  - Aerosol
+  - Alcohol
+  - Awl
+  - Axe
+  - Bat
+  - Battery
+  - Bullet
+  - Firecracker
+  - Gun
+  - GunParts
+  - Hammer
+  - HandCuffs
+  - HDD
+  - Knife
+  - Laptop
+  - Lighter
+  - Liquid
+  - Match
+  - MetalPipe
+  - NailClippers
+  - PortableGas
+  - Saw
+  - Scissors
+  - Screwdriver
+  - SmartPhone
+  - SolidFuel
+  - Spanner
+  - SSD
+  - SupplymentaryBattery
+  - TabletPC
+  - Thinner
+  - USB
+  - ZippoOil
+  - Plier
+  - Chisel
+  - Electronic cigarettes
+  - Electronic cigarettes(Liquid)
+  - Throwing Knife
