@@ -10,6 +10,8 @@ import torch
 from pycocotools.coco import COCO
 from torch.utils.data import Dataset, DataLoader
 from imgaug.augmenters.size import pad
+from pathlib import Path
+import re
 
 
 category_names = ['Aerosol', 'Alcohol', 'Awl', 'Axe', 'Bat', 'Battery', 'Bullet', 'Firecracker', 'Gun', 'GunParts', 'Hammer',
@@ -203,3 +205,43 @@ test_transform = A.Compose([
 #     print(labels.type())
 #     labels = labels.type(torch.FloatTensor)
 #     print(labels.type())
+
+class RetrainDataset(Dataset):
+    """
+    custom format(file + filename)
+    ex: static/ml_pred/000001[1,23,45].png
+    """
+    def __init__(self, image_dir: list, mode="train", transform=None, class_num=38):
+        super().__init__()
+        self.mode = mode
+        self.transform = transform
+        self.class_num = class_num
+        self.image_dir = image_dir
+
+    def __getitem__(self, index):
+        imgpath = self.image_dir[index]
+        labels = np.zeros((self.class_num, ))
+
+        labels_idx = self.get_label_from_dir(imgpath)
+        labels[labels_idx] = 1
+
+        images = cv2.imread(imgpath)
+        images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB)
+
+        if self.transform is not None:
+            transformed = self.transform(image=images)
+            images = transformed["image"]
+        
+        return images, labels
+
+
+    def __len__(self):
+        return len(self.image_dir)
+    
+
+    def get_label_from_dir(self, strPath: str):
+        regex = r"[^[]*\[([^]]*)\]"
+        filename = Path.GetFileName(strPath)
+        parsed = re.match(regex, filename).groups()[0]
+        labels = list(map(int, parsed.split(',')))
+        return labels

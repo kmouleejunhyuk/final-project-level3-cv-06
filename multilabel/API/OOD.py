@@ -4,83 +4,13 @@ import numpy as np
 import pickle
 from multilabel.API.preprocess import processer
 from multilabel.API.model import val_transform
+from multilabel.baseline.model import multihead_hooked
 from app.app_config import config as CONFIG
 from skimage.transform import resize
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from baseline.metrics import top_k_labels
-
-
-#학습 스크립트에서 가져올까 하다가 디펜던시 늘리기 싫어서 그냥 하드코딩
-class multihead_hooked(nn.Module):
-    def __init__(self, num_classes, cls_classes, device):
-        super().__init__()
-        self.backbone = models.resnet101(pretrained=True)
-        self.backbone.fc = nn.Identity()
-        self.fcs = nn.ModuleList([nn.Linear(2048, 2) for _ in range(38)])
-        self.device = device
-
-        #option for gradcam
-        self.gradients = None
-        self.tensorhook = []
-        self.layerhook = []
-        self.selected_out = None
-        self.OODhook = []
-        
-        self.layerhook.append(self.backbone.layer4.register_forward_hook(self.forward_hook()))
-
-        #option for OOD detection
-        self.backbone.conv1.register_forward_hook(self.dense_hook())
-
-    
-    def activations_hook(self,grad):
-        self.gradients = grad
-
-
-    def get_act_grads(self):
-        return self.gradients
-
-
-    def forward_hook(self):
-        def hook(module, inp, out):
-            self.selected_out = out
-            self.tensorhook.append(out.register_hook(self.activations_hook))
-        return hook
-
-
-    def dense_hook(self):
-        def hook(model, input, output):
-            self.OODhook.append(output.detach())
-        return hook
-
-
-    def forward(self, inputs):
-        feat = self.backbone(inputs)
-        vecs = []
-        for fc in self.fcs:
-            vec = fc(feat)
-            vecs.append(vec)
-        
-        stack = torch.stack(vecs, axis = 0)
-        return stack.permute(1,0,2), 0 #self.selected_out
-
-
-    def get_loss(self, outs, cls_outs, labels, criterion):
-        label_binary = self.get_binary_label(labels).to(torch.long) # .to(torch.float32)
-        losses = []
-        for out, label in zip(outs, label_binary):
-            _loss = criterion(out, torch.max(label, dim=1)[1])
-            losses.append(_loss)
-        
-        return torch.sum(torch.stack(losses))
-
-
-    def get_binary_label(self, labels):
-        _ones = torch.ones((labels.shape)).to('cuda')
-        counterpart = _ones - labels
-        cats = torch.stack([counterpart, labels], axis = 0)
-        return cats.permute(1,2,0).to(self.device)
 
 
 def cosine_similarity(xray_feat, image_feat) -> float:

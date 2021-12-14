@@ -1,14 +1,8 @@
 import albumentations as A
 import albumentations.augmentations.crops.transforms as T
-import json
-import pandas as pd
-from pandas import json_normalize
-from pathlib import Path
-import os
 import numpy as np
 import cv2
-from tqdm import tqdm
-import pprint
+
 
 class processer():
     def __init__(self, bar_margin = 75, side_margin = 150):
