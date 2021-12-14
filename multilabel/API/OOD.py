@@ -1,28 +1,31 @@
+# import sys
+# sys.path.append('/opt/ml/finalproject')
+
 from torch import torch, nn
-from torchvision import models
 import numpy as np
 import pickle
-from multilabel.API.preprocess import processer
-from multilabel.API.model import val_transform
-from multilabel.baseline.model import multihead_hooked
-from app.app_config import config as CONFIG
 from skimage.transform import resize
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from baseline.metrics import top_k_labels
+#dependency
+from multilabel.API.preprocess import processer
+from multilabel.API.model import val_transform
+from multilabel.baseline.model import multihead_hooked
+from app.app_config import config as CONFIG
+from multilabel.baseline.metrics import top_k_labels
 
 
-def cosine_similarity(xray_feat, image_feat) -> float:
+def cosine_similarity(xray_feat: np.ndarray, image_feat: np.ndarray) -> float:
     assert xray_feat.shape == image_feat.shape
-    xray_feat = xray_feat**2
-    image_feat = image_feat**2
+    xray_feat_squared = xray_feat**2
+    image_feat_squared = image_feat**2
 
     xray_l2 = np.sqrt(
-        np.sum(xray_feat.ravel())
+        np.sum(xray_feat_squared.ravel())
     )
     image_l2 = np.sqrt(
-        np.sum(image_feat.ravel())
+        np.sum(image_feat_squared.ravel())
     )
 
     rad = np.sum((xray_feat * image_feat).ravel())
@@ -30,12 +33,12 @@ def cosine_similarity(xray_feat, image_feat) -> float:
     return np.abs(rad / (xray_l2 * image_l2))
 
 
-def get_density(density_path: str)->torch.Tensor:
+def get_density(density_path: str)->np.ndarray:
     with open(density_path, 'rb') as f:
         xray_mean_feat = pickle.load(f)
 
     print('density loaded')
-    return xray_mean_feat
+    return xray_mean_feat.cpu().numpy()
 
 
 def get_OOD_gradcam_model(weight_path: str, device: str):
@@ -44,7 +47,7 @@ def get_OOD_gradcam_model(weight_path: str, device: str):
     state_dict = torch.load(weight_path)
     model.load_state_dict(state_dict)
     model.eval()
-    print('loaded')
+    print('model loaded')
 
     return model
 
@@ -72,11 +75,10 @@ def get_image_from_activation(image, act, grads):
     return fig
 
 
-def OOD_inference(model: nn.Module, density_dir: str, image: np.ndarray, device: str):
+def OOD_inference(model: nn.Module, xray_density: np.ndarray, image: np.ndarray, device: str):
     '''
     model: multihead_hooked 모델
     pred: 예측한 레이블 이름(list(str))
-    confidence: 레이블이 맞을 확률(list(float))
     similarity: 사진이 xray와 유사한 정도(float), THR 정의 필요(약 800)
     grad_fig: gradcam figure(no axis)
     '''
@@ -87,10 +89,9 @@ def OOD_inference(model: nn.Module, density_dir: str, image: np.ndarray, device:
 
     out, cls_out = model(transformed_image)
 
-    #OOD detection(THR: 800)
+    #OOD detection(THR: 0.5)
     density_activation = model.OODhook.pop()
-    xray_mean_feat = get_density(density_dir).cpu().numpy()
-    similarity = cosine_similarity(xray_mean_feat, density_activation)
+    similarity = cosine_similarity(xray_density, density_activation.squeeze(0).cpu().numpy())
 
     #gradcam
     grad_activation = model.selected_out
@@ -106,15 +107,25 @@ def OOD_inference(model: nn.Module, density_dir: str, image: np.ndarray, device:
     loss.backward()
     grad_activation = grad_activation.detach().cpu()
     grads = model.get_act_grads().detach().cpu()
-    grad_fig = get_image_from_activation(image, grad_activation, grads)
+    grad_fig = get_image_from_activation(transformed_image.squeeze(0), grad_activation, grads)
 
-    # label inference
+    # label treatment
     category_names = CONFIG.classes
     pred = torch.argmax(out, dim = -1).cpu().detach()
     pred_idx = np.where(pred==1)[1]
     pred = [category_names[cat_id] for cat_id in pred_idx]
-    confidence = [out[:, cat_id, -1].item() for cat_id in pred_idx]
-    anti_confidence = [out[:, cat_id, 0].item() for cat_id in pred_idx]
-    confidence = [conf / (anti + conf) for conf, anti in zip(confidence, anti_confidence)]
 
-    return pred, confidence, similarity, grad_fig
+    return pred, similarity, grad_fig
+
+
+#testcode
+if __name__ == '__main__':
+    import cv2
+    image = cv2.imread('/opt/ml/tmp/img/spanner.jpg')
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    model = get_OOD_gradcam_model('/opt/ml/finalproject/multilabel/baseline/save/multi-head_celoss_fulltrain_best.pth', 'cuda')
+    xray_mean_feat = get_density('/opt/ml/tmp/featuremap.pickle')
+    pred, similarity, grad_fig = OOD_inference(model, xray_mean_feat, image, 'cuda')
+    print(pred, similarity)
+    grad_fig.savefig('/opt/ml/tmp/fig2.png', dpi=300, facecolor='#eeeeee', bbox_inches='tight', pad_inches = 0)

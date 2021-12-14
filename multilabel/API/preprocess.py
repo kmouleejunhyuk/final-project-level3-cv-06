@@ -50,9 +50,10 @@ class processer():
 
 
     def preprocess(self, image: np.ndarray):
-        # image = cv2.imread(image_dir)
-        image = self.cropper(image)
-        # cv2.imwrite(save_dir, image)
+        if image.shape == (1080, 1920, 3):
+            image = self.cropper(image)
+        else:
+            print('not a proper image. preprocess skipped')
 
         return image
 

@@ -241,7 +241,7 @@ class RetrainDataset(Dataset):
 
     def get_label_from_dir(self, strPath: str):
         regex = r"[^[]*\[([^]]*)\]"
-        filename = Path.GetFileName(strPath)
+        filename = strPath.split('/')[-1]
         parsed = re.match(regex, filename).groups()[0]
         labels = list(map(int, parsed.split(',')))
         return labels

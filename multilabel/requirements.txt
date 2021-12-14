@@ -10,7 +10,7 @@ tqdm
 uvicorn
 pycocotools
 sklearn
-skimage
+scikit-image
 scipy
 numpy
 pandas

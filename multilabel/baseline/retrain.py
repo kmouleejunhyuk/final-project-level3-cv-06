@@ -1,7 +1,11 @@
+# import sys
+# sys.path.append('/opt/ml/finalproject')
+
 #dependency
-from baseline.metrics import top_k_labels, get_confusion_matrix, get_metrics_from_matrix
-from model import val_transform
-from baseline.dataset import RetrainDataset
+from multilabel.baseline.metrics import top_k_labels, get_confusion_matrix, get_metrics_from_matrix
+from multilabel.baseline.dataset import RetrainDataset
+from multilabel.API.model import val_transform
+
 #else
 import torch
 from torch import nn
@@ -9,11 +13,11 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 
 import numpy as np
-import tqdm
+from tqdm import tqdm
 
 
 def retrain(model: nn.Module, img_dirs: list, epoch: int, save_path: str, batch_size: str = 1):
-    dataset = RetrainDataset(img_dirs, transform = val_transform)
+    retrain_dataset = RetrainDataset(img_dirs, transform = val_transform)
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     
@@ -22,7 +26,7 @@ def retrain(model: nn.Module, img_dirs: list, epoch: int, save_path: str, batch_
     print("GPU 사용 가능 여부: {}".format(torch.cuda.is_available()))
 
     loader = DataLoader(
-        dataset = dataset,
+        dataset = retrain_dataset,
         batch_size = batch_size,
         num_workers = 1,
         shuffle = False,
@@ -87,3 +91,10 @@ def retrain(model: nn.Module, img_dirs: list, epoch: int, save_path: str, batch_
 
     torch.save(model.state_dict(), save_path)
     print(f'save complete at: {save_path}')
+
+
+#testcode
+if __name__ == '__main__':
+    from model import multihead
+    model = multihead(38, 0, 'cuda')
+    retrain(model, ['/opt/ml/tmp/img/0001[0,1,2].png', '/opt/ml/tmp/img/0002[2,5,20].png'], 3, '/opt/ml/tmp/weight.pth')
