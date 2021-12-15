@@ -209,21 +209,37 @@ test_transform = A.Compose([
 class RetrainDataset(Dataset):
     """
     custom format(file + filename)
-    ex: static/ml_pred/000001[1,23,45].png
+    
     """
-    def __init__(self, image_dir: list, mode="train", transform=None, class_num=38):
+    def __init__(self, image_dirs: list, mode="train", transform=None, class_num=38):
+        '''
+        dataset for retrain in custom format
+        Args:
+            image_dirs: list[str]
+                이미지 경로들 리스트
+                ex: ['static/ml_pred/000001[1,23,45].png', 'static/ml_pred/000001[1,23,45].png' , ...]
+
+            mode: str
+                dummy var for compatibility
+
+            transform: Albumentation.Compose
+                Albumentation Compose object
+                ex: Albumentation.Compose([Albumentation.TotensorV2()])
+
+            class_num: int
+        '''
         super().__init__()
         self.mode = mode
         self.transform = transform
         self.class_num = class_num
-        self.image_dir = image_dir
+        self.image_dir = image_dirs
 
     def __getitem__(self, index):
         imgpath = self.image_dir[index]
         labels = np.zeros((self.class_num, ))
 
-        labels_idx = self.get_label_from_dir(imgpath)
-        labels[labels_idx] = 1
+        index = self.get_label_from_dir(imgpath)
+        labels[index] = 1
 
         images = cv2.imread(imgpath)
         images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB)
@@ -239,9 +255,19 @@ class RetrainDataset(Dataset):
         return len(self.image_dir)
     
 
-    def get_label_from_dir(self, strPath: str):
+    def get_label_from_dir(self, strpath: str):
+        '''
+        get labels from filename(used for custom retraining session)
+        args:
+            strpath: 단일 이미지 경로
+                ex: static/ml_pred/000001[1,23,45].png
+
+        return:
+            index: list[int] with label index
+                ex: [1, 23, 45]
+        '''
         regex = r"[^[]*\[([^]]*)\]"
-        filename = strPath.split('/')[-1]
+        filename = strpath.split(os.sep)[-1]
         parsed = re.match(regex, filename).groups()[0]
-        labels = list(map(int, parsed.split(',')))
-        return labels
+        index = list(map(int, parsed.split(',')))
+        return index

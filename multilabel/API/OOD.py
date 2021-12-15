@@ -17,6 +17,9 @@ from multilabel.baseline.metrics import top_k_labels
 
 
 def cosine_similarity(xray_feat: np.ndarray, image_feat: np.ndarray) -> float:
+    '''
+    두 feature map간 cosine 유사도를 구해주는 코드
+    '''
     assert xray_feat.shape == image_feat.shape
     xray_feat_squared = xray_feat**2
     image_feat_squared = image_feat**2
@@ -33,8 +36,17 @@ def cosine_similarity(xray_feat: np.ndarray, image_feat: np.ndarray) -> float:
     return np.abs(rad / (xray_l2 * image_l2))
 
 
-def get_density(density_path: str)->np.ndarray:
-    with open(density_path, 'rb') as f:
+def get_feature(feature_path: str)->np.ndarray:
+    '''
+    training set의 모델 feature map 평균을 불러오는 코드
+    Args:
+        density_path: str
+            file 경로
+    return:
+        xray_mean_feat: np.ndarray
+            모델의 feature map 평균 
+    '''
+    with open(feature_path, 'rb') as f:
         xray_mean_feat = pickle.load(f)
 
     print('density loaded')
@@ -53,6 +65,22 @@ def get_OOD_gradcam_model(weight_path: str, device: str):
 
 
 def get_image_from_activation(image, act, grads):
+    '''
+    activation을 시각화해서 image와 같이 출력하는 코드
+    Args:
+        image: torch.Tensor
+            모델 인퍼런스시 사용한 image, transform 등등 전부 적용되어 있어야 함
+
+        act: torch.Tensor
+            모델 특정 레이어의 feature map
+        
+        grads: torch.Tensor
+            모델 특정 레이어의 gradient 분포
+
+    return:
+        fig: plt.figure
+            이미지에 gradcam을 더해 시각화한 figure
+    '''
     pooled_grads = torch.mean(grads, dim=[0,2,3]).detach().cpu()
     for i in range(act.shape[1]):
         act[:,i,:,:] += pooled_grads[i]
@@ -62,9 +90,9 @@ def get_image_from_activation(image, act, grads):
     heatmap_j /= heatmap_j_max
 
     
-    heatmap_j = resize(heatmap_j,(512,512),preserve_range=True)
-    cmap = mpl.cm.get_cmap('jet',256)
-    heatmap_cmap = cmap(heatmap_j,alpha = 0.5)
+    heatmap_j = resize(heatmap_j, (512,512), preserve_range=True)
+    cmap = mpl.cm.get_cmap('jet', 256)
+    heatmap_cmap = cmap(heatmap_j, alpha = 0.5)
     
     fig, axs = plt.subplots(1,1,figsize = (5,5))
     im = (image*0.2+0.5).permute(1,2,0).cpu()
@@ -77,10 +105,24 @@ def get_image_from_activation(image, act, grads):
 
 def OOD_inference(model: nn.Module, xray_density: np.ndarray, image: np.ndarray, device: str):
     '''
-    model: multihead_hooked 모델
-    pred: 예측한 레이블 이름(list(str))
-    similarity: 사진이 xray와 유사한 정도(float), THR 정의 필요(약 800)
-    grad_fig: gradcam figure(no axis)
+    OOD + gradcam 기능이 합쳐진 모델 인퍼런스 코드
+
+    Args:
+        model: nn.Module
+            multihead_hooked 모델
+
+        xray_density: np.ndarray
+            get_density의 output
+
+    returns:
+        pred: list(str)
+            예측한 레이블 이름
+
+        similarity: float
+            사진이 xray와 유사한 정도(float), THR 정의 필요(약 0.5)
+
+        grad_fig: plt.figure
+            gradcam figure(no axis)
     '''
     process = processer()
     image = process.preprocess(image)
@@ -125,7 +167,7 @@ if __name__ == '__main__':
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     model = get_OOD_gradcam_model('/opt/ml/finalproject/multilabel/baseline/save/multi-head_celoss_fulltrain_best.pth', 'cuda')
-    xray_mean_feat = get_density('/opt/ml/tmp/featuremap.pickle')
+    xray_mean_feat = get_feature('/opt/ml/tmp/featuremap.pickle')
     pred, similarity, grad_fig = OOD_inference(model, xray_mean_feat, image, 'cuda')
     print(pred, similarity)
     grad_fig.savefig('/opt/ml/tmp/fig2.png', dpi=300, facecolor='#eeeeee', bbox_inches='tight', pad_inches = 0)

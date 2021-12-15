@@ -16,6 +16,14 @@ class processer():
     # 많지 않은 샘플이기에, 속도가 많이 느릴것 같지 않아 numba 제외. 
     # 필요하면 @njit 데코레이터만 넣으면 됨
     def get_box(self, image: np.ndarray):
+        '''
+        이미지를 순회하면서 객체가 들어 있는 가장 큰 box 좌표를 구해주는 코드
+        Args: 
+            image: np.ndarray
+                blur 처리된 image
+        returns:
+            list of box coordinates([xmin, ymin, xmax, ymax])
+        '''
         xmin, ymin, xmax, ymax = 1e+5, 1e+5, 0, 0
         for i in range(image.shape[0]):
             for j in range(image.shape[1]):
@@ -34,7 +42,15 @@ class processer():
         return [xmin, ymin, xmax, ymax]
 
 
-    def cropper(self, image):  #x, y, w, h format
+    def cropper(self, image):
+        '''
+        image 배경을 제거하는 코드
+        Args:
+            image: np.ndarray
+        return
+            c_image: torch.Tensor
+                transformed image tensor
+        '''
         meta = self.formal_transform(image = image)
         image = meta['image']
 
