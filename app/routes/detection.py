@@ -2,7 +2,7 @@ from app.app_config import config as CONFIG
 from app.customrouter import fileRouter
 from fastapi.responses import RedirectResponse
 
-MODEL = CONFIG.multilabel_model
+MODEL = CONFIG.detection_model
 DEVICE = CONFIG.device
 LABELS = CONFIG.classes
 

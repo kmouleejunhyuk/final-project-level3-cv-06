@@ -7,10 +7,15 @@ router :
 multilabel_model:
   name : "multihead"
   root : "../multilabel/baseline/"
-  save_path : "save/multi-head_celoss_fulltrain_best.pth"
+  save_path : "weights/multi-head_celoss_fulltrain_best.pth"
   num_classes : 38
   cls_classes : 6
   image_path : "multilabel_pred"
+detection_model:
+  name : "fasterrcnn"
+  root : "../detection/models/"
+  save_path : "weights/epoch=17-step=66959.ckpt"
+  image_path : ""
 device : "cuda"
 classes:
   - Aerosol
