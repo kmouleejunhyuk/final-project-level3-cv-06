@@ -1,2 +1,2 @@
-# final-project-level3-cv-06
-final-project-level3-cv-06 created by GitHub Classroom.
+# X-Ray Baggage Scanner 자동 검출 솔루션
+
