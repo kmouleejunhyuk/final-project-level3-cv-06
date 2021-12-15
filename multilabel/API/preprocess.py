@@ -66,7 +66,8 @@ class processer():
 
 
     def preprocess(self, image: np.ndarray):
-        if image.shape == (1080, 1920, 3):
+        is_astrophysics = np.all(image[-1, 0, :] == [213, 213, 215]) and np.all(image[-1, -1, :] == [213, 213, 215])
+        if image.shape == (1080, 1920, 3) and is_astrophysics:
             image = self.cropper(image)
         else:
             print('not a proper image. preprocess skipped')
