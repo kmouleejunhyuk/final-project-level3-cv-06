@@ -1,3 +1,4 @@
+port : 80
 static : 
   directiory : "static"
   url : "static"
@@ -11,6 +12,7 @@ multilabel_model:
   num_classes : 38
   cls_classes : 6
   image_path : "multilabel_pred"
+  grad_cam_density_path : "save/density.pickle"
 device : "cuda"
 classes:
   - Aerosol

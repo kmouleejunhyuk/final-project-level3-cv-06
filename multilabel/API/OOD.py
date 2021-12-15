@@ -15,6 +15,9 @@ from multilabel.baseline.model import multihead_hooked
 from app.app_config import config as CONFIG
 from multilabel.baseline.metrics import top_k_labels
 
+MODELS = CONFIG.multilabel_model
+DEVICE = CONFIG.device
+LABELS = CONFIG.classes
 
 def cosine_similarity(xray_feat: np.ndarray, image_feat: np.ndarray) -> float:
     '''
@@ -36,7 +39,7 @@ def cosine_similarity(xray_feat: np.ndarray, image_feat: np.ndarray) -> float:
     return np.abs(rad / (xray_l2 * image_l2))
 
 
-def get_feature(feature_path: str)->np.ndarray:
+def get_feature(feature_path: str = MODELS.root + MODELS.grad_cam_density_path)->np.ndarray:
     '''
     training set의 모델 feature map 평균을 불러오는 코드
     Args:
@@ -49,17 +52,17 @@ def get_feature(feature_path: str)->np.ndarray:
     with open(feature_path, 'rb') as f:
         xray_mean_feat = pickle.load(f)
 
-    print('density loaded')
+    # print('density loaded')
     return xray_mean_feat.cpu().numpy()
 
 
-def get_OOD_gradcam_model(weight_path: str, device: str):
+def get_OOD_gradcam_model(weight_path: str = MODELS.root + MODELS.save_path, device: str = DEVICE):
     model = multihead_hooked(38, 6, device)
     model = model.to(device)
     state_dict = torch.load(weight_path)
     model.load_state_dict(state_dict)
     model.eval()
-    print('model loaded')
+    # print('model loaded')
 
     return model
 
@@ -103,7 +106,7 @@ def get_image_from_activation(image, act, grads):
     return fig
 
 
-def OOD_inference(model: nn.Module, xray_density: np.ndarray, image: np.ndarray, device: str):
+def OOD_inference(model: nn.Module, xray_density: np.ndarray, image, device: str= DEVICE):
     '''
     OOD + gradcam 기능이 합쳐진 모델 인퍼런스 코드
 
@@ -124,6 +127,8 @@ def OOD_inference(model: nn.Module, xray_density: np.ndarray, image: np.ndarray,
         grad_fig: plt.figure
             gradcam figure(no axis)
     '''
+    image = image.convert('RGB')
+    image = np.array(image)
     process = processer()
     image = process.preprocess(image)
     transformed_image = val_transform(image = image)['image'].unsqueeze(0).to(device)

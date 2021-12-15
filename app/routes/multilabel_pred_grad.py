@@ -9,6 +9,7 @@ from PIL import Image
 from app.customrouter import fileRouter
 from app.app_config import config as CONFIG
 from multilabel.API.model import model_loader, get_multilabel_prediction_toindex
+from multilabel.API.OOD import get_OOD_gradcam_model, get_feature, OOD_inference
 
 # IMG_PATH = os.path.join(CONFIG.static.directiory, CONFIG.multilabel_model.image_path)
 IMG_PATH = CONFIG.static.directiory + "/" + CONFIG.multilabel_model.image_path
@@ -16,7 +17,8 @@ IMG_PATH = CONFIG.static.directiory + "/" + CONFIG.multilabel_model.image_path
 
 
 try:
-    MODEL = model_loader()
+    MODEL = get_OOD_gradcam_model()
+    GRAD_CAM_DENSITY = get_feature()
 except:
     raise Exception("multilabel model loader Error")
 
@@ -28,20 +30,6 @@ for file in os.listdir(IMG_PATH):
     name, pred = filename[:6], filename[6:]
     ITEMS[name] = pred
 
-@router.get("/")
-def get_item():
-    # 전체 예측 정보
-    return ITEMS
-
-@router.get("/{img_id}")
-def get_item_by_img_id(img_id):
-    # img_id 기준으로 예측정보 출력
-    return ITEMS[img_id]
-
-@router.get("/image/{img_id}", response_class=RedirectResponse)
-def get_image_by_img_id(img_id):
-    pred = get_item_by_img_id(img_id)
-    return "/" + IMG_PATH + "/" + img_id + pred + ".png"
 
 @router.post("/")
 async def upload_files(file: UploadFile = File(...)):
@@ -49,7 +37,10 @@ async def upload_files(file: UploadFile = File(...)):
 
     contents = await file.read()
     img = Image.open(io.BytesIO(contents))
-    pred = get_multilabel_prediction_toindex(MODEL, img)
+    print(type(img))
+    # pred = get_multilabel_prediction_toindex(MODEL, img)
+    pred, similarity, grad_fig = OOD_inference(MODEL, GRAD_CAM_DENSITY, img)
+    print(pred, similarity)
 
     filename, ext = os.path.splitext(file.filename)
     file_id = f"{offset:06d}"
