@@ -13,6 +13,7 @@ runs/
 *.out
 wandb
 *.pth
+*.pickle
 
 # personal ignore root
 personal/
