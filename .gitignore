@@ -15,6 +15,7 @@ runs/
 wandb
 *.pth
 *.ckpt
+*.png
 
 # personal ignore root
 personal/
