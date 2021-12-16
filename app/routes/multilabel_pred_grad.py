@@ -39,7 +39,7 @@ async def upload_files(file: UploadFile = File(...)):
     img = Image.open(io.BytesIO(contents))
     print(type(img))
     # pred = get_multilabel_prediction_toindex(MODEL, img)
-    pred, similarity, grad_fig = OOD_inference(MODEL, GRAD_CAM_DENSITY, img)
+    pred, similarity, grad_arr = OOD_inference(MODEL, GRAD_CAM_DENSITY, img)
     print(pred, similarity)
 
     filename, ext = os.path.splitext(file.filename)

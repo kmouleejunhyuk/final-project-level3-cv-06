@@ -97,13 +97,22 @@ def get_image_from_activation(image, act, grads):
     cmap = mpl.cm.get_cmap('jet', 256)
     heatmap_cmap = cmap(heatmap_j, alpha = 0.5)
     
-    fig, axs = plt.subplots(1,1,figsize = (5,5))
+    fig, axs = plt.subplots(1,1,figsize = (5,5), tight_layout = True)
     im = (image*0.2+0.5).permute(1,2,0).cpu()
     axs.imshow(im.cpu())
     axs.imshow(heatmap_cmap)
     axs.axis('off')
+    
+    return figure_to_array(fig)
 
-    return fig
+
+def figure_to_array(fig):
+    """
+    plt.figure를 RGBA로 변환(layer가 4개)
+    shape: height, width, layer
+    """
+    fig.canvas.draw()
+    return np.array(fig.canvas.renderer._renderer)
 
 
 def OOD_inference(model: nn.Module, xray_density: np.ndarray, image, device: str= DEVICE):
@@ -154,7 +163,7 @@ def OOD_inference(model: nn.Module, xray_density: np.ndarray, image, device: str
     loss.backward()
     grad_activation = grad_activation.detach().cpu()
     grads = model.get_act_grads().detach().cpu()
-    grad_fig = get_image_from_activation(transformed_image.squeeze(0), grad_activation, grads)
+    grad_arr = get_image_from_activation(transformed_image.squeeze(0), grad_activation, grads)
 
     # label treatment
     category_names = CONFIG.classes
@@ -162,17 +171,19 @@ def OOD_inference(model: nn.Module, xray_density: np.ndarray, image, device: str
     pred_idx = np.where(pred==1)[1]
     pred = [category_names[cat_id] for cat_id in pred_idx]
 
-    return pred, similarity, grad_fig
+    return pred, similarity, grad_arr
 
 
 #testcode
 if __name__ == '__main__':
-    import cv2
-    image = cv2.imread('/opt/ml/tmp/img/spanner.jpg')
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    import PIL.Image as Image
+    image = Image.open('/opt/ml/tmp/img/spanner.jpg')
+    # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     model = get_OOD_gradcam_model('/opt/ml/finalproject/multilabel/baseline/save/multi-head_celoss_fulltrain_best.pth', 'cuda')
     xray_mean_feat = get_feature('/opt/ml/tmp/featuremap.pickle')
-    pred, similarity, grad_fig = OOD_inference(model, xray_mean_feat, image, 'cuda')
+    pred, similarity, grad_arr = OOD_inference(model, xray_mean_feat, image, 'cuda')
     print(pred, similarity)
-    grad_fig.savefig('/opt/ml/tmp/fig2.png', dpi=300, facecolor='#eeeeee', bbox_inches='tight', pad_inches = 0)
+    print(type(grad_arr))
+    
+    Image.fromarray(grad_arr).save('/opt/ml/tmp/f2.png')
