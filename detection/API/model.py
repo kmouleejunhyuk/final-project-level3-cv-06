@@ -1,4 +1,6 @@
 
+import io
+
 import albumentations as A
 import cv2
 import numpy as np
@@ -6,6 +8,7 @@ import torch
 from albumentations.pytorch import ToTensorV2
 from app.app_config import config as CONFIG
 from detection.models.fasterrcnn import DetectionModel
+from PIL import Image
 from utils.timer import timer
 
 MODELS = CONFIG.detection_model
@@ -22,11 +25,8 @@ def model_loader():
     return model
 
 
-def read_img(img):
-    img = np.array(img)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32)
-    img /= 255.0
-    return img
+def convert_img(image_byte):
+    return np.array(image_byte.convert('RGB'), dtype=np.float32)/255
 
 
 test_transform = A.Compose([
@@ -35,11 +35,12 @@ test_transform = A.Compose([
 
 
 @timer
-def get_detection_prediction(model, image, score_threshold: float=0.7):
+def get_detection_prediction(model, image_byte, score_threshold: float=0.7):
     '''
     return image
     '''
-    image = read_img(image)
+    image = Image.open(io.BytesIO(image_byte))
+    image = convert_img(image)
     image = test_transform(image=image)['image']
     image = image.unsqueeze(dim=0).to(DEVICE)
 
@@ -57,7 +58,6 @@ def get_detection_prediction(model, image, score_threshold: float=0.7):
     image = image.squeeze(dim=0).cpu()
     image = image.permute(1, 2, 0).numpy()
     image = (image * 255).astype(np.uint8)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     for i in range(len(labels)):
         box = list(map(int, boxes[i]))
