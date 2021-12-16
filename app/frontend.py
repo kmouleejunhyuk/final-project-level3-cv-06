@@ -33,9 +33,10 @@ def main():
         st.write("주제 : X-Ray Baggage Scanner 자동 검출 솔루션  \n 설명 : 공항의 수화물에 포함된 유해물품(흉기, 화기류 등)을 CV기반 솔루션으로 검출  \n task 1 : Multi-label Classification  \n task 2 : Object Detection Model")
         st.markdown("____")
         st.subheader("팀원 소개")
-        naeun_route = '/home/jhoh/finalproject/app/static/cider.jpeg'
-        member_images = [naeun_route, naeun_route, naeun_route, naeun_route, naeun_route, naeun_route, naeun_route]
-        st.image(member_images, width=100, caption=["naeun", "naeun", "naeun", "naeun", "naeun", "naeun", "naeun"])
+        name_route = '/home/jhoh/finalproject/app/static/profile/'
+        member_images = ['jiwoo.png', 'jiyun.png', 'jiyou.jpeg', 'naeun.jpg', 'jaehwan.jpg', 'junhyuk.png', 'kyungjae.png']
+        member_route = [name_route+member for member in member_images]
+        st.image(member_route, width=100, caption=["jiwoo", "jiyun", "jiyou", "naeun", "jaehwan", "junhyuk", "kyungjae"])
 
     mode_radio = st.sidebar.radio("Mode Select", ("Not Selected", "New Image", "Predicted Image"))
     if mode_radio == "New Image":
@@ -43,7 +44,6 @@ def main():
 
         if uploaded_file:
             image_bytes = uploaded_file.getvalue()
-            image = Image.open(io.BytesIO(image_bytes))
             files = [
                 ('files', (uploaded_file.name, image_bytes, uploaded_file.type))
             ]
@@ -55,12 +55,19 @@ def main():
                     classifying_msg = st.warning("Classifying...")
 
                     cls_response = requests.post("http://203.252.79.155:8002/multilabel/pred/", files=files)
-                    st.write(f'labels : {cls_response.json()}')
-                    st.image(image, caption="Uploaded Image")
+                    st.write(f'image similarity : {cls_response.json()[1]}')
+                    if float(cls_response.json()[1]) < 0.5:
+                        st.warning("It is not a X-ray image!")
+                        classifying_msg.empty()
+                        st.write("")
+                        st.write("")
+                    else:
+                        st.write(f'labels : {cls_response.json()[0]}')
+                        grad_cam = Image.fromarray(np.array(cls_response.json()[2]).astype('uint8'))
+                        st.image(grad_cam, caption="Uploaded Image")
 
-                    classifying_msg.empty()
-                    st.success("Classificated!!")
-                    st.write("")
+                        classifying_msg.empty()
+                        st.success("Classificated!!")
 
             elif model_radio == 'Object detection':
                 placeholder.empty()

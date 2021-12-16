@@ -1,22 +1,22 @@
 import io
 import os
-from fastapi import File, UploadFile
-from fastapi.responses import RedirectResponse
 from typing import List
 
 from app.app_config import config as CONFIG
 from app.customrouter import fileRouter
 from fastapi import File, UploadFile
+from fastapi.responses import RedirectResponse
 from PIL import Image
 
-from multilabel.API.model import (get_multilabel_prediction_toindex_toLabel,
-                                  model_loader)
+from multilabel.API.OOD import (OOD_inference, get_feature,
+                                get_OOD_gradcam_model)
 
 IMG_PATH = CONFIG.static.directiory + "/" + CONFIG.multilabel_model.image_path
 LABELS = CONFIG.classes
 
 try:
-    MODEL = model_loader()
+    MODEL = get_OOD_gradcam_model()
+    GRAD_CAM_DENSITY = get_feature()
 except:
     raise Exception("multilabel model loader Error")
 
@@ -52,14 +52,17 @@ async def get_multilabel(files: List[UploadFile] = File(...)):
     for idx, file in enumerate(files):
         file_bytes = await file.read()
         image = Image.open(io.BytesIO(file_bytes))
-        pred, out = get_multilabel_prediction_toindex_toLabel(MODEL, image)
-        predictions.append(out)
+        pred, similarity, grad_arr = OOD_inference(MODEL, GRAD_CAM_DENSITY, image)
+        
+        predictions.append(pred)
+        predictions.append(str(similarity))
+        predictions.append(grad_arr.tolist())
 
         filename, ext = os.path.splitext(file.filename)
         file_id = f"{offset+idx:06d}"
-        filename = file_id + str(out) + ext
-        with open(os.path.join(IMG_PATH, filename), "wb") as fp:
-            fp.write(file_bytes)
-        ITEMS[file_id] = str(out)
-
-    return predictions[0]
+        filename = file_id + str(pred) + ext
+        if similarity > 0.5:
+            with open(os.path.join(IMG_PATH, filename), "wb") as fp:
+                fp.write(file_bytes)
+        ITEMS[file_id] = str(pred)
+    return predictions
