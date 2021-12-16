@@ -15,7 +15,7 @@ detection_model:
   name : "fasterrcnn"
   root : "../detection/models/"
   save_path : "weights/epoch=17-step=66959.ckpt"
-  image_path : ""
+  image_path : "detection_pred"
 device : "cuda"
 classes:
   - Aerosol

@@ -1,18 +1,12 @@
+import albumentations as A
 import numpy as np
 import torch
-
-import albumentations as A
 from albumentations.core.transforms_interface import ImageOnlyTransform
 from albumentations.pytorch import ToTensorV2
-
-from imgaug.augmenters.size import pad
-
-from multilabel.baseline import model as mlmodels
-
-from utils.timer import timer
-
 from app.app_config import config as CONFIG
-
+from imgaug.augmenters.size import pad
+from multilabel.baseline import model as mlmodels
+from utils.timer import timer
 
 MODELS = CONFIG.multilabel_model
 DEVICE = CONFIG.device
@@ -120,4 +114,16 @@ def get_multilabel_prediction_toindex(model, image):
     return index
 
 
+def get_multilabel_prediction_toindex_toLabel(model, image):
+    '''
+    return index and label
+    '''
+    pred = get_multilabel_prediction(model, image)
 
+    index, labels = [], []
+    for idx, (label, bool) in enumerate(zip(LABELS, pred)):
+        if bool:
+            index.append(idx)
+            labels.append(label)
+    
+    return index, labels
