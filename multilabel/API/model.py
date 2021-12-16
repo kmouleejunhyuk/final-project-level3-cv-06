@@ -80,7 +80,8 @@ def get_multilabel_prediction(model, image):
     image = image.convert('RGB')
     image = np.array(image)
     image = val_transform(image = image)['image'].unsqueeze(0).to(DEVICE)
-    out, _ = model(image)
+    with torch.no_grad():
+        out, _ = model(image)
     pred = torch.argmax(out, dim = -1).cpu().detach()
 
     return pred[0]

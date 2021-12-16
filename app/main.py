@@ -48,3 +48,4 @@ auto_include_router(app, CONFIG.router.dir_path, CONFIG.router.lib_path)
 @app.get("/")
 def root():
     return {"hello" : "world"}
+    

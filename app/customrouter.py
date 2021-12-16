@@ -12,7 +12,8 @@ class fileRouter(APIRouter):
     def __init__(self, *args, **kwargs):
         # if os.path.isfile(prefix := kwargs.get("prefix", None)):
         # os.path.isfile 테스트 환경문제로 생략, 오류 확인 신경쓸것
-        if (prefix := kwargs.get("prefix", None)):
+        prefix = kwargs.get("prefix", None)
+        if prefix:
             prefix, ext = os.path.splitext(os.path.basename(prefix))
             prefix = re.sub("_", "/", prefix)
             kwargs["prefix"] = "/" + prefix

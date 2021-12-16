@@ -1,5 +1,7 @@
 import io
 import os
+from fastapi import File, UploadFile
+from fastapi.responses import RedirectResponse
 from typing import List
 
 from app.app_config import config as CONFIG
@@ -36,6 +38,11 @@ def get_item_by_img_id(img_id):
     # img_id 기준으로 예측정보 출력
     img_path = os.path.join(os.getcwd(), IMG_PATH, img_id+ITEMS[img_id]+'.png')
     return img_path, ITEMS[img_id]
+
+@router.get("/image/{img_id}", response_class=RedirectResponse)
+def get_image_by_img_id(img_id):
+    pred = get_item_by_img_id(img_id)
+    return "/" + IMG_PATH + "/" + img_id + pred + ".png"
 
 @router.post("/")
 async def get_multilabel(files: List[UploadFile] = File(...)):

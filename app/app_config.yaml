@@ -1,3 +1,4 @@
+port : 80
 static : 
   directiory : "static"
   url : "static"
@@ -16,6 +17,7 @@ detection_model:
   root : "../detection/models/"
   save_path : "weights/epoch=17-step=66959.ckpt"
   image_path : "detection_pred"
+  grad_cam_density_path : "save/density.pickle"
 device : "cuda"
 classes:
   - Aerosol
