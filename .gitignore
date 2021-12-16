@@ -16,6 +16,8 @@ wandb
 *.pth
 *.ckpt
 *.png
+*.jpg
+*.jpeg
 
 # personal ignore root
 personal/
