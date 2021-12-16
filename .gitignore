@@ -13,6 +13,7 @@ runs/
 *.out
 wandb
 *.pth
+*.ckpt
 
 # personal ignore root
 personal/
