@@ -1,6 +1,7 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+
 data/eval
 data/train
 data/sampled
@@ -19,3 +20,4 @@ wandb
 personal/
 streamlit/
 final_project_level3_cv_06.egg-info/
+
