@@ -47,5 +47,7 @@ def get_opt_sche(config_train, model):
         )
     elif config_train['scheduler'] == "multistep":
         scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[30])
+    else:
+        scheduler = None
 
     return optimizer, scheduler

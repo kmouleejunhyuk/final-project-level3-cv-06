@@ -1,7 +1,6 @@
 import argparse
 import yaml
 import glob
-import json
 import os
 import random
 import re
@@ -12,19 +11,56 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import glob
 
 import wandb
-from dataset import (
-    CustomDataLoader,
-    train_transform,
-    val_transform
-)
+from dataset import CustomDataLoader
 from losses import create_criterion
 from optim_sche import get_opt_sche
-# from utils.utils import add_hist, grid_image, label_accuracy_score
-from sklearn.metrics import precision_score, recall_score, f1_score
+from metrics import get_metrics_from_matrix, top_k_labels, get_confusion_matrix
+from visualize import draw_batch_images
+import shutil
 
 
+category_names = [
+    'Aerosol', 
+    'Alcohol', 
+    'Awl', 
+    'Axe', 
+    'Bat', 
+    'Battery', 
+    'Bullet', 
+    'Firecracker', 
+    'Gun', 
+    'GunParts', 
+    'Hammer',
+    'HandCuffs', 
+    'HDD', 
+    'Knife', 
+    'Laptop', 
+    'Lighter', 
+    'Liquid', 
+    'Match', 
+    'MetalPipe', 
+    'NailClippers', 
+    'PortableGas', 
+    'Saw', 'Scissors', 
+    'Screwdriver',
+    'SmartPhone', 
+    'SolidFuel', 
+    'Spanner', 
+    'SSD', 
+    'SupplymentaryBattery', 
+    'TabletPC', 
+    'Thinner', 
+    'USB', 
+    'ZippoOil', 
+    'Plier', 
+    'Chisel', 
+    'Electronic cigarettes',
+    'Electronic cigarettes(Liquid)', 
+    'Throwing Knife'
+]
 
 def seed_everything(seed):
     torch.manual_seed(seed)
@@ -58,18 +94,6 @@ def increment_path(path, exist_ok=False):
         n = max(i) + 1 if i else 2
         return f"{path}{n}"
 
-def calculate_metrics(pred, target):
-    return {'micro/precision': precision_score(y_true=target, y_pred=pred, average='micro'),
-            'micro/recall': recall_score(y_true=target, y_pred=pred, average='micro'),
-            'micro/f1': f1_score(y_true=target, y_pred=pred, average='micro'),
-            'macro/precision': precision_score(y_true=target, y_pred=pred, average='macro'),
-            'macro/recall': recall_score(y_true=target, y_pred=pred, average='macro'),
-            'macro/f1': f1_score(y_true=target, y_pred=pred, average='macro'),
-            'samples/precision': precision_score(y_true=target, y_pred=pred, average='samples'),
-            'samples/recall': recall_score(y_true=target, y_pred=pred, average='samples'),
-            'samples/f1': f1_score(y_true=target, y_pred=pred, average='samples'),
-            }
-
 
 def createDirectory(save_dir):
     try:
@@ -79,28 +103,44 @@ def createDirectory(save_dir):
         print("Error: Failed to create the directory.")
 
 
-def train(model_dir, config_train, thr=0.5):
-    seed_everything(config_train['seed'])
-
-    save_dir = increment_path(os.path.join(model_dir, config_train['name']))
-    createDirectory(save_dir)
-
+def train(model_dir, config_train, config_dir):
     # settings
-    print("pytorch version: {}".format(torch.__version__))
-    print("GPU 사용 가능 여부: {}".format(torch.cuda.is_available()))
-    # print(torch.cuda.get_device_name(0))
-    # print(torch.cuda.device_count())
+    N_CLASSES = 38
+    THR = 0.5
 
+    seed_everything(config_train['seed'])
+    save_dir = increment_path(
+        os.path.join(
+            model_dir, 
+            config_train['name']))
+    createDirectory(save_dir)
+    shutil.copyfile(
+        config_dir, 
+        os.path.join(
+            save_dir, 
+            config_dir.split('/')[-1]))
+    
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-    from dataset import CustomDataLoader, train_transform, val_transform
+    print("pytorch version: {}".format(torch.__version__))
+    print("GPU 사용 가능 여부: {}".format(torch.cuda.is_available()))
 
     # dataset
+    import sys
+    sys.path.append('/opt/ml/finalproject/multilabel/baseline')
+    from dataset import train_transform, val_transform
+    
     train_dataset = CustomDataLoader(
-        data_dir=config_train['val_path'], mode="train", transform=train_transform
+        image_dir=config_train['image_path'], 
+        data_dir=config_train['train_path'],
+        mode="sampled", 
+        transform=train_transform
     )
     val_dataset = CustomDataLoader(
-        data_dir=config_train['val_path'], mode="val", transform=val_transform
+        image_dir=config_train['image_path'], 
+        data_dir=config_train['val_path'], 
+        mode="eval", 
+        transform=val_transform
     )
 
     # data_loader
@@ -123,164 +163,168 @@ def train(model_dir, config_train, thr=0.5):
     )
 
     # model
-    n_classes = 38
-
     model_module = getattr(import_module("model"), config_train['model'])
-    model = model_module(num_classes=n_classes)
+    model = model_module(num_classes=N_CLASSES)
     model = model.to(device)
     if config_train['wandb'] == True:
         wandb.watch(model)
 
     # loss & optimizer
     criterion = create_criterion(config_train['criterion'])
+    # metric_key = ['recall', 'precision', 'f1', 'emr']
 
     # optimizer & scheduler
     optimizer, scheduler = get_opt_sche(config_train, model)
 
-    # with open(os.path.join(save_dir, "config.json"), "w", encoding="utf-8") as f:
-    #     json.dump(vars(config_train), f, ensure_ascii=False, indent=4)
 
     # start train
-    best_val_acc = 0 
+    best_val_EMR = -1
     best_val_loss = np.inf
     step = 0
+
     for epoch in range(config_train['epochs']):
         # train loop
-        cal = 0
         model.train()
-        loss_value = 0
-        matches = 0
-        acc = 0
-        for idx, train_batch in enumerate(tqdm(train_loader)):
-            inputs, labels = train_batch
-            inputs = inputs.to(device)
+        train_emr = []
+        train_confusion_matrix = np.zeros((38, 4))
+        for idx, (images, labels) in tqdm(enumerate(train_loader), desc = f'train/epoch {epoch}', leave = False, total=len(train_loader)):
+            images = images.to(device)
             labels = labels.type(torch.FloatTensor).to(device)
-
             optimizer.zero_grad()
 
-            outs = model(inputs)
-            # print(outs.shape, type(outs))
-            pred = np.array(outs.detach().cpu().numpy() > 0.5, dtype = float)
-            loss = criterion(outs, labels.type(torch.float))
+            outs = model(images)
+            preds = torch.where(outs>THR, 1., 0.).detach()
+            loss = criterion(outs, labels)
 
             loss.backward()
             optimizer.step()
+            
+            # acc, recall, precision, auc
+            images = images.detach().cpu()
+            preds = preds.detach().cpu().numpy()
+            labels = labels.detach().cpu().numpy()
 
-            loss_value += loss.item()
-            # print(pred, labels)
-            # print((pred == labels).sum())
-            matches += (pred == labels.detach().cpu().numpy()).sum().item()
-            if (idx + 1) % config_train['log_interval'] == 0:
-                cal+=1
-                train_loss = loss_value / config_train['log_interval']
-                train_acc = matches / config_train['batch_size'] / config_train['log_interval'] / n_classes
-                result = calculate_metrics(pred, labels.detach().cpu().numpy())
-                current_lr = get_lr(optimizer)
-                acc += train_acc / 100
-                print(
-                    f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
-                    f"training loss {train_loss:4.4} || training accuracy {acc*100/cal:4.2%} || lr {current_lr}"
-                )
-                print(
-                  "micro f1: {:.3f} "
-                  "macro f1: {:.3f} "
-                  "samples f1: {:.3f}".format(
-                                              result['micro/f1'],
-                                              result['macro/f1'],
-                                              result['samples/f1']))
+            matrix = get_confusion_matrix(preds, labels)
+            train_confusion_matrix += np.array(matrix)
+            train_emr.append(np.mean((preds == labels).min(axis = 1)))
 
-                # logger.add_scalar("Train/loss", train_loss, epoch * len(train_loader) + idx)
-                # logger.add_scalar("Train/accuracy", train_acc, epoch * len(train_loader) + idx)
-
-                # wandb log
-                if config_train['wandb'] == True:
-                    wandb.log(
-                        {
-                            # "Media/train predict images": figure,
-                            "Train/Train loss": round(train_loss, 4),
-                            "Train/Train acc": round(result['micro/f1'], 4),
-                            "learning_rate": current_lr,
-                            "epoch" : epoch+1
-                        },
-                        step=step,
-                    )
-                loss_value = 0
-                matches = 0
+            if config_train['wandb'] == True:
+                wandb_log = {}
+                wandb_log["Train/EMR"] = np.mean(train_emr)
+                wandb_log["Train/loss"] = round(loss.item(), 4)
+                wandb.log(wandb_log, step)
             step += 1
+        
+        if scheduler:
+            scheduler.step()
 
-        print(
-                f"Epoch[{epoch}/{config_train['epochs']}]({idx + 1}/{len(train_loader)}) || "
-                f"training loss {train_loss:4.4} || training accuracy {acc*100/cal:4.2%} || lr {current_lr}"
+        # mAR, mAP, mF1, etc
+        if config_train['wandb'] == True:
+            wandb_log = {}
+            _, metrics = get_metrics_from_matrix(train_confusion_matrix)
+            fig = draw_batch_images(
+                images, 
+                labels, 
+                preds, 
+                category_names
             )
+        
+            wandb_log["Train/mAR"] = metrics[0]
+            wandb_log["Train/mAP"] = metrics[1]
+            wandb_log["Train/mF1"] = metrics[2]
 
-        scheduler.step()
+            wandb_log["Train/epoch"] = epoch + 1
+            wandb_log["learning_rate"] = get_lr(optimizer)
+            wandb_log["Image/train image"] = fig
+            wandb.log(wandb_log, step)
+
 
         # val loop
         with torch.no_grad():
             print("Calculating validation results...")
             model.eval()
-            val_loss = 0
-            val_acc = 0
-            figure = None
-            for val_batch in val_loader:
-                inputs, labels = val_batch
-                inputs = inputs.to(device)
-                labels = labels.type(torch.FloatTensor)
-                labels = labels.to(device)
+            val_epoch_loss = 0
+            val_confusion_matrix = np.zeros((38, 4))
+            val_len = len(val_loader)
+            valid_emr = []
 
-                outs = model(inputs)
-                pred = np.array(outs.detach().cpu().numpy() > 0.5, dtype = float)
+            for (images, labels) in tqdm(val_loader, desc = f'val/epoch {epoch}', leave = False, total=len(val_loader)):
+                images = images.to(device)
+                labels = labels.type(torch.FloatTensor).to(device)
 
-                loss_item = criterion(outs, labels).item()
-                acc_item = (labels.detach().cpu().numpy() == pred).sum().item()
-                val_loss += loss_item
-                val_acc += acc_item
+                outs = model(images)
+                preds = torch.where(outs>THR, 1., 0.).detach()
+                loss = criterion(outs, labels).item()
+                val_epoch_loss += loss
 
-            val_loss = val_loss / len(val_loader)
-            val_acc = val_acc / len(val_dataset) / n_classes
-            best_val_loss = min(best_val_loss, val_loss)
-            if val_acc > best_val_acc:
-                print(f"New best model for val accuracy : {val_acc:4.2%}! saving the best model..")
+                # recall, precision, f1
+                images, preds, labels = images.detach().cpu(), preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
+                matrix = get_confusion_matrix(preds, labels)
+                val_confusion_matrix += np.array(matrix)
+                valid_emr.append(np.mean((preds == labels).min(axis = 1)))
+
+            val_epoch_loss /= val_len
+
+            best_val_loss = min(best_val_loss, val_epoch_loss)
+            valid_emr = np.mean(valid_emr)
+            best_val_loss = min(best_val_loss, val_epoch_loss)
+            if valid_emr > best_val_EMR:
+                print(f"New best model for EMR : {valid_emr:4.2%}! saving the best model..")
+                before_file = glob.glob(os.path.join(save_dir, 'best.pth'))
+                if before_file:
+                    os.remove(before_file[0])
                 torch.save(model.state_dict(), f"{save_dir}/best.pth")
-                best_val_acc = val_acc
+                best_val_EMR = valid_emr
             torch.save(model.state_dict(), f"{save_dir}/last.pth")
-            print(
-                f"[Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2} || "
-                f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}"
-            )
-            # wandb log
+    
             if config_train['wandb'] == True:
-                wandb.log(
-                    {
-                        # "Media/train predict images": figure,
-                        "Valid/Valid loss": round(val_loss, 4),
-                        "Valid/Valid acc": round(val_acc, 4),
-                        "epoch": epoch+1
-                    },
-                    step=step,
-                )
+                label_metric, (mAR, mAP, mF1) = get_metrics_from_matrix(val_confusion_matrix)
+                # wandb log
+                wandb_log = {}
+                wandb_log["Valid/Valid loss"] = round(val_epoch_loss, 4)
+                wandb_log["Image/Valid image"] = draw_batch_images(images.detach().cpu(), labels, preds, category_names)
+                wandb_log["epoch"] = epoch + 1
+                wandb_log["Valid/EMR"] = valid_emr
+
+                wandb_log[f"Valid/Valid mAR"] = round(mAR, 4)
+                wandb_log[f"Valid/Valid mAP"] = round(mAP, 4)
+                wandb_log[f"Valid/Valid mF1"] = round(mF1, 4)
+
+                for i in range(38):
+                    wandb_log[f"Metric/AR_{category_names[i]}"] = label_metric[i, 0]
+                    wandb_log[f"Metric/AP_{category_names[i]}"] = label_metric[i, 1]
+                    wandb_log[f"Metric/AF1_{category_names[i]}"] = label_metric[i, 2]
+
+                wandb.log(wandb_log, step=step)
             print()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-
-    parser.add_argument('--config_train', type=str, help='path of train configuration yaml file')
-
+    parser.add_argument(
+        '--config_train', 
+        default='/opt/ml/finalproject/multilabel/baseline/config/train.yaml', 
+        type=str, 
+        help='path of train configuration yaml file'
+    )
     args = parser.parse_args()
 
     with open(args.config_train) as f:
         config_train = yaml.load(f, Loader=yaml.FullLoader)
 
-    # check_args(args)
-    # print(args)
-
     # wandb init
     if config_train['wandb'] == True:
-        wandb.init(entity=config_train['entity'], project=config_train['project'])
+        wandb.init(
+            entity=config_train['entity'],
+             project=config_train['project']
+        )
         wandb.run.name = config_train['name']
         wandb.config.update(args)
 
     model_dir = config_train['model_dir']
 
-    train(model_dir, config_train)
+    train(
+        model_dir, 
+        config_train, 
+        args.config_train
+    )

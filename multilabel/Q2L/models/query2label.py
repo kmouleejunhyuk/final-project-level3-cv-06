@@ -63,10 +63,10 @@ class Qeruy2Label(nn.Module):
 
         # assert not (self.ada_fc and self.emb_fc), "ada_fc and emb_fc cannot be True at the same time."
         
-        hidden_dim = transfomer.d_model
-        self.input_proj = nn.Conv2d(backbone.num_channels, hidden_dim, kernel_size=1)
-        self.query_embed = nn.Embedding(num_class, hidden_dim)
-        self.fc = GroupWiseLinear(num_class, hidden_dim, bias=True)
+        self.hidden_dim = transfomer.d_model
+        self.input_proj = nn.Conv2d(backbone.num_channels, self.hidden_dim, kernel_size=1)
+        self.query_embed = nn.Embedding(num_class, self.hidden_dim)
+        self.fc = GroupWiseLinear(num_class, self.hidden_dim, bias=True)
 
 
     def forward(self, input):
@@ -92,6 +92,13 @@ class Qeruy2Label(nn.Module):
         print("=> loaded checkpoint '{}' (epoch {})"
                   .format(path, checkpoint['epoch']))
 
+    def reset_fc(self, num_class):
+        self.fc = nn.Sequential(
+            GroupWiseLinear(80, self.hidden_dim, bias=True),
+            nn.Linear(80, 38)
+        )
+
+
 
 def build_q2l(args):
     backbone = build_backbone(args)
@@ -103,9 +110,11 @@ def build_q2l(args):
         num_class = args.num_class
     )
 
-    if not args.keep_input_proj:
-        model.input_proj = nn.Identity()
-        print("set model.input_proj to Indentify!")
+    # if not args.keep_input_proj:
+    #     model.input_proj = nn.Identity()
+    #     print("set model.input_proj to Indentify!")
     
 
     return model
+        
+        

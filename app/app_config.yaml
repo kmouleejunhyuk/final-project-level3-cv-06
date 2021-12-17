@@ -1,0 +1,59 @@
+static : 
+  directiory : "static"
+  url : "static"
+router :
+  dir_path : "routes"
+  lib_path : "app.routes."
+multilabel_model:
+  name : "multihead"
+  root : "../multilabel/baseline/"
+  save_path : "weights/multi-head_celoss_fulltrain_best.pth"
+  num_classes : 38
+  cls_classes : 6
+  image_path : "multilabel_pred"
+  grad_cam_density_path : "save/density.pickle"
+detection_model:
+  name : "fasterrcnn"
+  root : "../detection/models/"
+  save_path : "weights/epoch=17-step=66959.ckpt"
+  image_path : "detection_pred"
+device : "cuda"
+classes:
+  - Aerosol
+  - Alcohol
+  - Awl
+  - Axe
+  - Bat
+  - Battery
+  - Bullet
+  - Firecracker
+  - Gun
+  - GunParts
+  - Hammer
+  - HandCuffs
+  - HDD
+  - Knife
+  - Laptop
+  - Lighter
+  - Liquid
+  - Match
+  - MetalPipe
+  - NailClippers
+  - PortableGas
+  - Saw
+  - Scissors
+  - Screwdriver
+  - SmartPhone
+  - SolidFuel
+  - Spanner
+  - SSD
+  - SupplymentaryBattery
+  - TabletPC
+  - Thinner
+  - USB
+  - ZippoOil
+  - Plier
+  - Chisel
+  - Electronic cigarettes
+  - Electronic cigarettes(Liquid)
+  - Throwing Knife
