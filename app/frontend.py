@@ -15,11 +15,11 @@ def main():
     )
 
     # home_button = st.sidebar.button("Home")
-    model_radio = st.sidebar.radio("Model Select", ("Not Selected", "Multi-label Classification", "Object detection"))   
+    model_radio = st.sidebar.radio("Model Select", ("Not Selected", "Multi-label Classification", "Object Detection"))   
     if model_radio == "Multi-label Classification":
         model_response = requests.get("http://203.252.79.155:8002/multilabel/model")
         st.sidebar.warning(model_response.json())
-    elif model_radio == "Object detection":
+    elif model_radio == "Object Detection":
         model_response = requests.get("http://203.252.79.155:8002/detection/model")
         st.sidebar.warning(model_response.json())
     
@@ -69,7 +69,7 @@ def main():
                         classifying_msg.empty()
                         st.success("Classificated!!")
 
-            elif model_radio == 'Object detection':
+            elif model_radio == 'Object Detection':
                 placeholder.empty()
                 with placeholder.container():
                     st.markdown("____")
@@ -86,19 +86,36 @@ def main():
                     st.write("")
 
     elif mode_radio == "Predicted Image":
-        file_response = requests.get("http://203.252.79.155:8002/multilabel/pred/")
-        file_select = st.sidebar.selectbox("Images", file_response.json()) # key
-        
-        if file_select != 'None':
-            if model_radio == 'Multi-label Classification':
+        if model_radio == 'Multi-label Classification':
+            file_response = requests.get("http://203.252.79.155:8002/multilabel/pred/")
+            file_select = st.sidebar.selectbox("Images", file_response.json()) # key
+            
+            if file_select != 'None':
+                result = requests.get(f"http://203.252.79.155:8002/multilabel/pred/{file_select}")
                 placeholder.empty()
                 with placeholder.container():
-                    result = requests.get(f"http://203.252.79.155:8002/multilabel/pred/{file_select}")
-                    
+                    st.markdown("____")
                     st.write(f'labels : {result.json()[1]}')
-                    
                     result_img = Image.open(result.json()[0])
                     st.image(result_img, caption="Result Image")
                     st.success("Success load!!")
+                    st.write("")
+                    st.write("")
+        
+        elif model_radio == 'Object Detection':
+            file_response = requests.get("http://203.252.79.155:8002/detection/pred/")
+            file_select = st.sidebar.selectbox("Images", file_response.json())
+
+            if file_select != 'None':
+                result = requests.get(f"http://203.252.79.155:8002/detection/pred/{file_select}")
+                placeholder.empty()
+                with placeholder.container():
+                    st.markdown("____")
+                    result_img = Image.open(result.json()[0])
+                    st.image(result_img, caption="Result Image")
+                    st.success("Success load!!")
+                    st.write("")
+                    st.write("")
+                    st.write("")
 
 main()
