@@ -4,7 +4,6 @@ import numpy as np
 from PIL import Image
 import cv2
 
-
 class processer():
     def __init__(self, bar_margin = 75, side_margin = 150):
         self.formal_transform = A.Compose(

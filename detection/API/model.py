@@ -10,6 +10,7 @@ from app.app_config import config as CONFIG
 from detection.models.fasterrcnn import DetectionModel
 from PIL import Image
 from utils.timer import timer
+from multilabel.API.preprocess import processer
 
 MODELS = CONFIG.detection_model
 DEVICE = CONFIG.device
@@ -25,8 +26,8 @@ def model_loader():
     return model
 
 
-def convert_img(image_byte):
-    return np.array(image_byte.convert('RGB'), dtype=np.float32)/255
+def convert_img(image_pil):
+    return np.array(image_pil.convert('RGB'), dtype=np.float32)/255
 
 
 test_transform = A.Compose([
@@ -40,6 +41,7 @@ def get_detection_prediction(model, image_byte, score_threshold: float=0.7):
     return image
     '''
     image = Image.open(io.BytesIO(image_byte))
+    image = processer().preprocess(image)
     image = convert_img(image)
     image = test_transform(image=image)['image']
     image = image.unsqueeze(dim=0).to(DEVICE)

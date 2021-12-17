@@ -54,8 +54,6 @@ async def get_multilabel(files: List[UploadFile] = File(...)):
         file_bytes = await file.read()
         image = Image.open(io.BytesIO(file_bytes))
 
-        image = processer().preprocess(image)
-
         pred, similarity, grad_arr = OOD_inference(MODEL, GRAD_CAM_DENSITY, image)
         
         predictions.append(pred)

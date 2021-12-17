@@ -7,6 +7,8 @@ import pickle
 from skimage.transform import resize
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from utils.timer import timer
+
 
 #dependency
 from multilabel.API.preprocess import processer
@@ -114,7 +116,7 @@ def figure_to_array(fig):
     fig.canvas.draw()
     return np.array(fig.canvas.renderer._renderer)
 
-
+@timer
 def OOD_inference(model: nn.Module, xray_density: np.ndarray, image, device: str= DEVICE):
     '''
     OOD + gradcam 기능이 합쳐진 모델 인퍼런스 코드
@@ -140,6 +142,7 @@ def OOD_inference(model: nn.Module, xray_density: np.ndarray, image, device: str
     image = np.array(image)
     process = processer()
     image = process.preprocess(image)
+    image = np.array(image)
     transformed_image = val_transform(image = image)['image'].unsqueeze(0).to(device)
     criterion = nn.CrossEntropyLoss()
 
