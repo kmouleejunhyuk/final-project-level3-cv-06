@@ -1,17 +1,13 @@
 import os
 
 import pytorch_lightning as pl
-import torch
-import torchvision
-from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
-from torchvision.models.detection import FasterRCNN
-from torchvision.models.detection.rpn import AnchorGenerator
 
 from datasets.dataModule import CustomDataModule
 from models.fasterrcnn_new_mAP import LitModel
+
 
 # Path to the folder where the pretrained models are saved
 CHECKPOINT_PATH = "/opt/ml/finalproject/detection/saved_models/"
@@ -31,7 +27,7 @@ def train_model(model_name, save_name=None, **kwargs):
     train_loader = customDataModule.train_dataloader()
     val_loader = customDataModule.val_dataloader()
 
-    if save_name is None:
+    if not save_name:
         save_name = model_name
 
     wandb_logger = WandbLogger(entity='cider6', project='pytorch_lightning', name='resnet50_eval_sampled')
