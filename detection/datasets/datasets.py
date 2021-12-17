@@ -7,7 +7,7 @@ from pycocotools.coco import COCO
 from torch.utils.data import Dataset
 
 
-def read_img(img_path):
+def read_img(img_path): #--> to util
     img = cv2.imread(img_path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32)
     img /= 255.0
@@ -55,7 +55,12 @@ class CustomDataset(Dataset):
             labels = np.array([x['category_id']+1 for x in anns])
             labels = torch.as_tensor(labels, dtype=torch.int64)
 
-            target = {'boxes': boxes, 'labels': labels, 'image_id': torch.tensor([index]), 'img_scale': torch.tensor([1.])}
+            target = {
+                'boxes': boxes, 
+                'labels': labels, 
+                'image_id': torch.tensor([index]), 
+                'img_scale': torch.tensor([1.])
+            }
             
             # transform
             if self.transforms:
@@ -90,7 +95,7 @@ class CustomDataset(Dataset):
 def collate_fn(batch):
     return tuple(zip(*batch))
 
-def train_transform():
+def train_transform(): # --> to transform.py
     return A.Compose([
         ToTensorV2()
     ], bbox_params={'format': 'pascal_voc', 'label_fields':['labels']})
