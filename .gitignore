@@ -7,6 +7,18 @@ data/train
 data/sampled
 
 *.DS_Store
+
+*.ckpt
+saved_models/tensorboards/DenseNet/events.out.tfevents.densenet
+saved_models/tensorboards/GoogleNet/events.out.tfevents.googlenet
+saved_models/tensorboards/ResNet/events.out.tfevents.resnet
+saved_models/tensorboards/ResNetPreAct/events.out.tfevents.resnetpreact
+saved_models/*
+
+detection/lightning_logs/*
+detection/wandb/*
+detection/data
+detection/saved_models/*
 *.json
 *.pkl
 tmp/
@@ -23,4 +35,3 @@ wandb
 personal/
 streamlit/
 final_project_level3_cv_06.egg-info/
-
