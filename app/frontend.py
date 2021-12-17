@@ -18,10 +18,10 @@ def main():
     model_radio = st.sidebar.radio("Model Select", ("Not Selected", "Multi-label Classification", "Object Detection"))   
     if model_radio == "Multi-label Classification":
         model_response = requests.get("http://203.252.79.155:8002/multilabel/model")
-        st.sidebar.warning(model_response.json())
+        st.sidebar.info(model_response.json())
     elif model_radio == "Object Detection":
         model_response = requests.get("http://203.252.79.155:8002/detection/model")
-        st.sidebar.warning(model_response.json())
+        st.sidebar.info(model_response.json())
     
     st.header("X-Ray Baggage Scanner 자동 검출 솔루션")
 
