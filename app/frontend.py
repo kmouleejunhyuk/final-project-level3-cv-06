@@ -5,7 +5,6 @@ import requests
 import streamlit as st
 from PIL import Image
 
-
 def main():
     st.set_page_config(
         page_title="X-Ray Baggage Scanner 자동 검출 솔루션",
@@ -44,6 +43,8 @@ def main():
 
         if uploaded_file:
             image_bytes = uploaded_file.getvalue()
+            print(type(image_bytes))
+
             files = [
                 ('files', (uploaded_file.name, image_bytes, uploaded_file.type))
             ]
