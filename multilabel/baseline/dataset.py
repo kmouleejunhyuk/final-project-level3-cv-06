@@ -135,20 +135,6 @@ class ratio_aware_pad(ImageOnlyTransform):
         return img
 
 
-# train_transform = A.Compose([
-#     ratio_aware_pad(),
-#     A.augmentations.geometric.resize.Resize(512, 512),
-#     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
-#     ToTensorV2()
-# ])
-
-# val_transform = A.Compose([
-#     ratio_aware_pad(),
-#     A.augmentations.geometric.resize.Resize(512, 512),
-#     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.2, 0.2, 0.2)),
-#     ToTensorV2()
-# ])
-
 train_transform = A.Compose([
     ratio_aware_pad(),
     A.Resize(512, 512),

@@ -18,6 +18,7 @@ from dataset import CustomDataLoader
 from losses import create_criterion
 from optim_sche import get_opt_sche
 from metrics import get_metrics_from_matrix, top_k_labels, get_confusion_matrix
+from dataset import train_transform, val_transform, train_aug_transform
 from visualize import draw_batch_images
 import shutil
 
@@ -81,7 +82,7 @@ def get_lr(optimizer):
         return param_group["lr"]
 
 
-def increment_path(path, exist_ok=False):
+def increment_path(path, exist_ok=False): #-->util
     """Automatically increment path, i.e. runs/exp --> runs/exp0, runs/exp1 etc.
 
     Args:
@@ -99,7 +100,7 @@ def increment_path(path, exist_ok=False):
         return f"{path}{n}"
 
 
-def createDirectory(save_dir):
+def createDirectory(save_dir): #-->util
     try:
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
@@ -112,7 +113,7 @@ def train(model_dir, config_train, config_dir):
     seed_everything(config_train['seed'])
     save_dir = increment_path(os.path.join(model_dir, config_train['name']))
     createDirectory(save_dir)
-    shutil.copyfile(config_dir, os.path.join(save_dir, config_dir.split('/')[-1]))
+    shutil.copyfile(config_dir, os.path.join(save_dir, config_dir.split('/')[-1]))  #-->util
     print("pytorch version: {}".format(torch.__version__))
     print("GPU 사용 가능 여부: {}".format(torch.cuda.is_available()))
     use_cuda = torch.cuda.is_available()
@@ -120,16 +121,12 @@ def train(model_dir, config_train, config_dir):
     identity = True if 'two' in config_train['model'] else False
 
     # dataset
-    import sys
-    sys.path.append('/opt/ml/finalproject/multilabel/baseline')
-    from dataset import train_transform, val_transform, train_aug_transform
-    
     if config_train['augmentation'] == True:
         tr_transform = train_aug_transform
     else:
         tr_transform = train_transform
         
-    train_dataset = CustomDataLoader(
+    train_dataset = CustomDataLoader(   #-->이름바꿔
         image_dir=config_train['image_path'], 
         data_dir=config_train['train_path'],
         mode="train", 
@@ -328,6 +325,6 @@ if __name__ == "__main__":
         wandb.run.name = config_train['name']
         wandb.config.update(args)
 
-    model_dir = config_train['model_dir']
+    model_dir = config_train['model_dir'] #-->refactoring
 
     train(model_dir, config_train, args.config_train)
