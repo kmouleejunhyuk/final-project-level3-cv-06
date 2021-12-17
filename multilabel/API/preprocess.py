@@ -1,6 +1,7 @@
 import albumentations as A
 import albumentations.augmentations.crops.transforms as T
 import numpy as np
+from PIL import Image
 import cv2
 
 
@@ -65,14 +66,15 @@ class processer():
         return c_image
 
 
-    def preprocess(self, image: np.ndarray):
+    def preprocess(self, image):
+        image = np.asarray(image)
         is_astrophysics = np.mean(image[-1, 0, :]) > 213 and np.mean(image[-1, -1, :]) >213
         if image.shape == (1080, 1920, 3) and is_astrophysics:
             image = self.cropper(image)
         else:
             print('not a proper image. preprocess skipped')
 
-        return image
+        return Image.fromarray(image)
 
         
     

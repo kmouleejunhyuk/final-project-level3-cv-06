@@ -7,6 +7,7 @@ from app.customrouter import fileRouter
 from fastapi import File, UploadFile
 from fastapi.responses import RedirectResponse
 from PIL import Image
+from multilabel.API.preprocess import processer
 
 from multilabel.API.OOD import (OOD_inference, get_feature,
                                 get_OOD_gradcam_model)
@@ -52,6 +53,9 @@ async def get_multilabel(files: List[UploadFile] = File(...)):
     for idx, file in enumerate(files):
         file_bytes = await file.read()
         image = Image.open(io.BytesIO(file_bytes))
+
+        image = processer().preprocess(image)
+
         pred, similarity, grad_arr = OOD_inference(MODEL, GRAD_CAM_DENSITY, image)
         
         predictions.append(pred)
