@@ -31,7 +31,11 @@ from multilabel_utils.utils import (
     copy_config,
     is_cuda
 )
-from resources import category_names
+from resources import (
+    category_names, 
+    class_num
+)
+
 
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
@@ -89,7 +93,7 @@ def train(config_train, config_dir):
     )
 
     # model
-    N_CLASSES = 38
+    N_CLASSES = class_num
     model_module = getattr(import_module("model"), config_train['model'])
     model = model_module(num_classes=N_CLASSES, cls_classes = 6, device = device)
     model = model.to(device)
