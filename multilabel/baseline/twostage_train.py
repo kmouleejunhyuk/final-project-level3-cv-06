@@ -2,10 +2,8 @@ import argparse
 import yaml
 import glob
 import os
-import random
-import re
 from importlib import import_module
-from pathlib import Path
+
 
 import numpy as np
 import torch
@@ -14,125 +12,51 @@ from tqdm import tqdm
 import glob
 
 import wandb
-from dataset import CustomDataLoader
+from dataset import CustomDataset
 from losses import create_criterion
 from optim_sche import get_opt_sche
 from metrics import get_metrics_from_matrix, top_k_labels, get_confusion_matrix
-from dataset import train_transform, val_transform, train_aug_transform
-from visualize import draw_batch_images
-import shutil
-
-
-category_names = [
-    'Aerosol', 
-    'Alcohol', 
-    'Awl', 
-    'Axe', 
-    'Bat', 
-    'Battery', 
-    'Bullet', 
-    'Firecracker', 
-    'Gun', 
-    'GunParts', 
-    'Hammer',
-    'HandCuffs', 
-    'HDD', 
-    'Knife', 
-    'Laptop', 
-    'Lighter', 
-    'Liquid', 
-    'Match', 
-    'MetalPipe', 
-    'NailClippers', 
-    'PortableGas', 
-    'Saw', 
-    'Scissors', 
-    'Screwdriver',
-    'SmartPhone', 
-    'SolidFuel', 
-    'Spanner', 
-    'SSD', 
-    'SupplymentaryBattery', 
-    'TabletPC', 
-    'Thinner', 
-    'USB', 
-    'ZippoOil', 
-    'Plier', 
-    'Chisel', 
-    'Electronic cigarettes',
-    'Electronic cigarettes(Liquid)', 
-    'Throwing Knife'
-]
-
-
-
-
-def seed_everything(seed):
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # if use multi-GPU
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    np.random.seed(seed)
-    random.seed(seed)
-
+from transform import train_transform, val_transform, train_aug_transform
+from multilabel_utils.utils import (
+    draw_batch_images, 
+    seed_everything, 
+    increment_path, 
+    createDirectory,
+    copy_config,
+    is_cuda
+)
+from resources import category_names
 
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group["lr"]
 
 
-def increment_path(path, exist_ok=False): #-->util
-    """Automatically increment path, i.e. runs/exp --> runs/exp0, runs/exp1 etc.
-
-    Args:
-        path (str or pathlib.Path): f"{model_dir}/{args.name}".
-        exist_ok (bool): whether increment path (increment if False).
-    """
-    path = Path(path)
-    if (path.exists() and exist_ok) or (not path.exists()):
-        return str(path)
-    else:
-        dirs = glob.glob(f"{path}*")
-        matches = [re.search(rf"%s(\d+)" % path.stem, d) for d in dirs]
-        i = [int(m.groups()[0]) for m in matches if m]
-        n = max(i) + 1 if i else 2
-        return f"{path}{n}"
-
-
-def createDirectory(save_dir): #-->util
-    try:
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-    except OSError:
-        print("Error: Failed to create the directory.")
-
-
-def train(model_dir, config_train, config_dir):
+def train(config_train, config_dir):
     # settings
+    model_dir = config_train['model_dir']
+
     seed_everything(config_train['seed'])
     save_dir = increment_path(os.path.join(model_dir, config_train['name']))
     createDirectory(save_dir)
-    shutil.copyfile(config_dir, os.path.join(save_dir, config_dir.split('/')[-1]))  #-->util
-    print("pytorch version: {}".format(torch.__version__))
-    print("GPU 사용 가능 여부: {}".format(torch.cuda.is_available()))
-    use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
+    copy_config(config_dir, save_dir)
+
+    use_cuda, device = is_cuda()
     identity = True if 'two' in config_train['model'] else False
 
     # dataset
-    if config_train['augmentation'] == True:
+    if config_train['augmentation']:
         tr_transform = train_aug_transform
     else:
         tr_transform = train_transform
         
-    train_dataset = CustomDataLoader(   #-->이름바꿔
+    train_dataset = CustomDataset(
         image_dir=config_train['image_path'], 
         data_dir=config_train['train_path'],
         mode="train", 
         transform=tr_transform
     )
-    val_dataset = CustomDataLoader(
+    val_dataset = CustomDataset(
         image_dir=config_train['image_path'], 
         data_dir=config_train['val_path'], 
         mode="eval", 
@@ -196,7 +120,11 @@ def train(model_dir, config_train, config_dir):
                 criterion
             )
 
-            preds = top_k_labels(outs, cls_outs, identity = identity)
+            preds = top_k_labels(
+                outs, 
+                cls_outs, 
+                identity = identity
+            )
             
             loss.backward()
             optimizer.step()
@@ -316,15 +244,10 @@ if __name__ == "__main__":
     with open(args.config_train) as f:
         config_train = yaml.load(f, Loader=yaml.FullLoader)
 
-    # check_args(args)
-    # print(args)
-
     # wandb init
     if config_train['wandb'] == True:
         wandb.init(entity=config_train['entity'], project=config_train['project'], config=config_train)
         wandb.run.name = config_train['name']
         wandb.config.update(args)
 
-    model_dir = config_train['model_dir'] #-->refactoring
-
-    train(model_dir, config_train, args.config_train)
+    train(config_train, args.config_train)

@@ -9,10 +9,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from utils.timer import timer
 
-
 #dependency
 from multilabel.API.preprocess import processer
-from multilabel.API.model import val_transform
+from multilabel.baseline.transform import val_transform
 from multilabel.baseline.model import multihead_hooked
 from app.app_config import config as CONFIG
 from multilabel.baseline.metrics import top_k_labels

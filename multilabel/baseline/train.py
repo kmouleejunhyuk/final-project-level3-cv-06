@@ -14,11 +14,11 @@ from tqdm import tqdm
 import glob
 
 import wandb
-from dataset import CustomDataLoader
+from dataset import CustomDataset
 from losses import create_criterion
 from optim_sche import get_opt_sche
 from metrics import get_metrics_from_matrix, top_k_labels, get_confusion_matrix
-from visualize import draw_batch_images
+from finalproject.multilabel.baseline.multilabel_utils.visualize import draw_batch_images
 import shutil
 
 
@@ -130,13 +130,13 @@ def train(model_dir, config_train, config_dir):
     sys.path.append('/opt/ml/finalproject/multilabel/baseline')
     from dataset import train_transform, val_transform
     
-    train_dataset = CustomDataLoader(
+    train_dataset = CustomDataset(
         image_dir=config_train['image_path'], 
         data_dir=config_train['train_path'],
         mode="sampled", 
         transform=train_transform
     )
-    val_dataset = CustomDataLoader(
+    val_dataset = CustomDataset(
         image_dir=config_train['image_path'], 
         data_dir=config_train['val_path'], 
         mode="eval", 

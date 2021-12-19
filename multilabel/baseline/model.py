@@ -1,20 +1,21 @@
 import torch
 import torch.nn as nn
 from torchvision import models
-import torch.nn.functional as F
 
-# class ResNet101(nn.Module): 뺼까말까
-#     def __init__(self, num_classes):
-#         super().__init__()
 
-#         self.backbone = models.resnet101(pretrained=True)
-#         self.backbone.fc = nn.Linear(2048, num_classes)
-#         self.sigmoid = nn.Sigmoid()
+class ResNet101(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
 
-#     def forward(self, x):
-#         output = self.backbone(x)
-#         output = self.sigmoid(output)
-#         return output
+        self.backbone = models.resnet101(pretrained=True)
+        self.backbone.fc = nn.Linear(2048, num_classes)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        output = self.backbone(x)
+        output = self.sigmoid(output)
+        return output
+
 
 class Twostage(nn.Module):
     def __init__(self, num_classes, cls_classes, device):

@@ -4,7 +4,7 @@
 #dependency
 from multilabel.baseline.metrics import top_k_labels, get_confusion_matrix, get_metrics_from_matrix
 from multilabel.baseline.dataset import RetrainDataset
-from multilabel.API.model import val_transform
+from multilabel.baseline.transform import val_transform
 
 #else
 import torch
