@@ -18,7 +18,7 @@ from dataset import CustomDataset
 from losses import create_criterion
 from optim_sche import get_opt_sche
 from metrics import get_metrics_from_matrix, top_k_labels, get_confusion_matrix
-from finalproject.multilabel.baseline.multilabel_utils.visualize import draw_batch_images
+from multilabel_utils.utils import draw_batch_images
 import shutil
 
 
