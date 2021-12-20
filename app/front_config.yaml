@@ -1,0 +1,24 @@
+backend_ip : 127.0.0.1
+backend_port : 8002
+MODELS :
+  - multilabel
+  - detection
+input_type :
+  - png
+MEMBER :
+  member_image_path : ./static/profile/
+  members :
+    - name : jiwoo
+      image : jiwoo.png
+    - name : jiyoon
+      image : jiyoon.png
+    - name : jiyou
+      image : jiyou.jpeg
+    - name : naeun
+      image : naeun.jpeg
+    - name : jaehwan
+      image : jaehwan.jpeg
+    - name : junhyeok
+      image : junhyeok.png
+    - name : kyoungjae
+      image : kyoungjae.png

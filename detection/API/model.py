@@ -70,4 +70,10 @@ def get_detection_prediction(model, image_byte, score_threshold: float=0.7):
         cv2.rectangle(image, (box[0], box[1]-h), (box[0]+w, box[1]), (250, 0, 50), -1)
         cv2.putText(image, text, (box[0], box[1]), cv2.FONT_HERSHEY_PLAIN, 1, (0,0,0), 2, cv2.LINE_AA)
     
-    return image
+    return image, list(set(labels.tolist()))
+
+def get_detection_prediction_toLabel(model, image_byte, score_threshold: float=0.7):
+    image, preds = get_detection_prediction(model, image_byte, score_threshold)
+
+    labels = [LABELS[pred-1] for pred in preds]
+    return image, labels

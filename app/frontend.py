@@ -1,9 +1,17 @@
-import io
-
-import numpy as np
+from io import BytesIO
+from random import randint
 import requests
-import streamlit as st
 from PIL import Image
+
+import streamlit as st
+
+from app.front_config import config as CONFIG
+
+BACK_ADDRESS = "http://" + CONFIG.backend_ip
+BACK_PORT = str(CONFIG.backend_port)
+MODELS = CONFIG.MODELS
+MEMBER = CONFIG.MEMBER
+
 
 def main():
     st.set_page_config(
@@ -13,109 +21,84 @@ def main():
         initial_sidebar_state="expanded"
     )
 
-    # home_button = st.sidebar.button("Home")
-    model_radio = st.sidebar.radio("Model Select", ("Not Selected", "Multi-label Classification", "Object Detection"))
-    if model_radio == "Multi-label Classification":
-        model_response = requests.get("http://203.252.79.155:8002/multilabel/model")
-        st.sidebar.info(model_response.json())
-    elif model_radio == "Object Detection":
-        model_response = requests.get("http://203.252.79.155:8002/detection/model")
-        st.sidebar.info(model_response.json())
+    if 'key' not in st.session_state:
+        st.session_state.key = str(randint(1000, 100000000))
+
+    ### side bar
+
+    # 홈버튼
+    home_button = st.sidebar.button("Home")
+
+    # 모델 선택
+    model_type = st.sidebar.radio("Model Select", MODELS)
+    model_response = requests.get(BACK_ADDRESS + ":" + BACK_PORT + "/" + model_type + "/model")
+    device_response = requests.get(BACK_ADDRESS + ":" + BACK_PORT + "/" + model_type + "/device")
+    labels_response = requests.get(BACK_ADDRESS + ":" + BACK_PORT + "/" + model_type + "/labels")
+    st.sidebar.info("[" + device_response.json() + "] " + model_response.json()  
+                    + ", total " + str(len(labels_response.json())) + " categories")
+
+    # 파일 업로드
+    uploaded_file = st.sidebar.file_uploader("Upload an image", type=CONFIG.input_type,  key=st.session_state.key)
+
+    # 과거 이미지 선택
+    file_response = requests.get(BACK_ADDRESS + ":" + BACK_PORT + "/" + model_type + "/pred")
+    pred_images = list(file_response.json().keys())
+    pred_images.append("Select Image")
+    pred_images.sort(reverse=True)
+    idx = 1 if st.session_state.pop('new', None) else 0 # new가 true면 select box 생성시 가장 최근 이미지 자동 선택
+    file_select = st.sidebar.selectbox("Select Images", pred_images, index=idx, key=st.session_state.key)
     
+    # 홈버튼 누르면 세션 초기화 후 새로고침
+    if home_button and 'key' in st.session_state.keys():
+        st.session_state.pop('key')
+        st.experimental_rerun()
+
+    ### main page
+
+    # Header
     st.header("X-Ray Baggage Scanner 자동 검출 솔루션")
+    st.markdown("____")
 
-    placeholder = st.empty()
+    if uploaded_file:
+        # new image
+        image_bytes = uploaded_file.getvalue()
+        files = [('files', (uploaded_file.name, image_bytes, uploaded_file.type))]
+        with st.spinner("Classifying..."):
+            pred_response = requests.post(BACK_ADDRESS + ":" + BACK_PORT + "/" + model_type + "/pred", files=files)
 
-    with placeholder.container(): # 6개 st line
-        st.markdown("____")
-        st.subheader("프로젝트 소개")
-        st.write("주제 : X-Ray Baggage Scanner 자동 검출 솔루션  \n 설명 : 공항의 수화물에 포함된 유해물품(흉기, 화기류 등)을 CV기반 솔루션으로 검출  \n task 1 : Multi-label Classification  \n task 2 : Object Detection Model")
+        st.session_state.pop('key')
+        st.session_state.new = True # new가 true면 select box 생성시 가장 최근 이미지 자동 선택
+        st.experimental_rerun()
+        
+    elif file_select != "Select Image":
+        # pred
+        st.subheader("Prediction")
+        pred_response = requests.get(BACK_ADDRESS + ":" + BACK_PORT + "/" + model_type + "/pred/" + file_select)
+        image_response = requests.get(BACK_ADDRESS + ":" + BACK_PORT + "/" + model_type + "/pred/grad/" + file_select)
+        st.write(f'labels : {pred_response.json()}')
+        image = Image.open(BytesIO(image_response.content)) 
+        st.image(image, caption="Result Image")
+        st.success("Success load!!")
+        
+    else:
+        # home
+        st.subheader("프로젝트 소개")        
+        st.write("""
+                주제 : X-Ray Baggage Scanner 자동 검출 솔루션  
+                설명 : 공항의 수화물에 포함된 유해물품(흉기, 화기류 등)을 CV기반 솔루션으로 검출  
+                task 1 : Multi-label Classification  
+                task 2 : Object Detection Model
+                """)
         st.markdown("____")
         st.subheader("팀원 소개")
-        name_route = './static/profile/'
-        member_images = ['jiwoo.png', 'jiyun.png', 'jiyou.jpeg', 'naeun.jpg', 'jaehwan.jpg', 'junhyuk.png', 'kyoungjae.png']
-        member_route = [name_route+member for member in member_images]
-        st.image(member_route, width=100, caption=["jiwoo", "jiyun", "jiyou", "naeun", "jaehwan", "junhyuk", "kyoungjae"])
 
-    mode_radio = st.sidebar.radio("Mode Select", ("Not Selected", "New Image", "Predicted Image"))
-    if mode_radio == "New Image":
-        uploaded_file = st.sidebar.file_uploader("Upload an image", type=["png"])
+        member_image_path = MEMBER.member_image_path
+        member_images = []
+        member_captions = []
+        for member in MEMBER.members:
+            member_images.append(member_image_path+member.image)
+            member_captions.append(member.name)
+        st.image(member_images, width=100, caption=member_captions)
 
-        if uploaded_file:
-            image_bytes = uploaded_file.getvalue()
-
-            files = [
-                ('files', (uploaded_file.name, image_bytes, uploaded_file.type))
-            ]
-
-            if model_radio == 'Multi-label Classification':
-                placeholder.empty()
-                with placeholder.container():
-                    st.markdown("____")
-                    classifying_msg = st.warning("Classifying...")
-
-                    cls_response = requests.post("http://203.252.79.155:8002/multilabel/pred/", files=files)
-                    st.write(f'image similarity : {cls_response.json()[1]}')
-                    if float(cls_response.json()[1]) < 0.5:
-                        st.warning("It is not a X-ray image!")
-                        classifying_msg.empty()
-                        st.write("")
-                        st.write("")
-                    else:
-                        st.write(f'labels : {cls_response.json()[0]}')
-                        grad_cam = Image.fromarray(np.array(cls_response.json()[2]).astype('uint8'))
-                        st.image(grad_cam, caption="Uploaded Image")
-
-                        classifying_msg.empty()
-                        st.success("Classificated!!")
-
-            elif model_radio == 'Object Detection':
-                placeholder.empty()
-                with placeholder.container():
-                    st.markdown("____")
-                    detecting_msg = st.warning("Detecting...")
-
-                    detect_response = requests.post("http://203.252.79.155:8002/detection/pred/", files=files)
-                    img_arr = np.array(detect_response.json())
-                    detect_image = Image.fromarray(img_arr.astype('uint8'))
-                    st.write("")
-                    st.image(detect_image, caption="Detected image")
-
-                    detecting_msg.empty()
-                    st.success("Detected!!")
-                    st.write("")
-
-    elif mode_radio == "Predicted Image":
-        if model_radio == 'Multi-label Classification':
-            file_response = requests.get("http://203.252.79.155:8002/multilabel/pred/")
-            file_select = st.sidebar.selectbox("Images", file_response.json()) # key
-            
-            if file_select != 'None':
-                result = requests.get(f"http://203.252.79.155:8002/multilabel/pred/{file_select}")
-                placeholder.empty()
-                with placeholder.container():
-                    st.markdown("____")
-                    st.write(f'labels : {result.json()[1]}')
-                    result_img = Image.open(result.json()[0])
-                    st.image(result_img, caption="Result Image")
-                    st.success("Success load!!")
-                    st.write("")
-                    st.write("")
-        
-        elif model_radio == 'Object Detection':
-            file_response = requests.get("http://203.252.79.155:8002/detection/pred/")
-            file_select = st.sidebar.selectbox("Images", file_response.json())
-
-            if file_select != 'None':
-                result = requests.get(f"http://203.252.79.155:8002/detection/pred/{file_select}")
-                placeholder.empty()
-                with placeholder.container():
-                    st.markdown("____")
-                    result_img = Image.open(result.json()[0])
-                    st.image(result_img, caption="Result Image")
-                    st.success("Success load!!")
-                    st.write("")
-                    st.write("")
-                    st.write("")
 
 main()
