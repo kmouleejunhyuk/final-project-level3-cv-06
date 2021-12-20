@@ -3,9 +3,9 @@ import albumentations.augmentations.crops.transforms as T
 import numpy as np
 from PIL import Image
 import cv2
-from numba import njit
+from numba import njit, objmode
 
-@njit
+@njit(nopython = False)
 def get_box(image: np.ndarray):
     '''
     이미지를 순회하면서 객체가 들어 있는 가장 큰 box 좌표를 구해주는 코드
