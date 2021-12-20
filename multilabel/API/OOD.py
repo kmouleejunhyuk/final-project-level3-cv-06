@@ -92,7 +92,7 @@ def get_image_from_activation(image, act, grads):
     heatmap_j_max = heatmap_j.max(axis = 0)[0]
     heatmap_j /= heatmap_j_max
 
-    
+    heatmap_j = heatmap_j.cpu().numpy()
     heatmap_j = resize(heatmap_j, (512,512), preserve_range=True)
     cmap = mpl.cm.get_cmap('jet', 256)
     heatmap_cmap = cmap(heatmap_j, alpha = 0.5)
