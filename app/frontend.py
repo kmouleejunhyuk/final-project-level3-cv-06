@@ -32,7 +32,7 @@ def main():
         st.write("주제 : X-Ray Baggage Scanner 자동 검출 솔루션  \n 설명 : 공항의 수화물에 포함된 유해물품(흉기, 화기류 등)을 CV기반 솔루션으로 검출  \n task 1 : Multi-label Classification  \n task 2 : Object Detection Model")
         st.markdown("____")
         st.subheader("팀원 소개")
-        name_route = '../static/profile/'
+        name_route = './static/profile/'
         member_images = ['jiwoo.png', 'jiyun.png', 'jiyou.jpeg', 'naeun.jpg', 'jaehwan.jpg', 'junhyuk.png', 'kyoungjae.png']
         member_route = [name_route+member for member in member_images]
         st.image(member_route, width=100, caption=["jiwoo", "jiyun", "jiyou", "naeun", "jaehwan", "junhyuk", "kyoungjae"])
