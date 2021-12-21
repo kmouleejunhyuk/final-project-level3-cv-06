@@ -74,7 +74,7 @@ def main():
         # pred
         st.subheader("Prediction")
         pred_response = requests.get(BACK_ADDRESS + ":" + BACK_PORT + "/" + model_type + "/pred/" + file_select)
-        image_response = requests.get(BACK_ADDRESS + ":" + BACK_PORT + "/" + model_type + "/pred/" + file_select)
+        image_response = requests.get(BACK_ADDRESS + ":" + BACK_PORT + "/" + model_type + "/pred/image/" + file_select)
         st.write(f'labels : {pred_response.json()}')
         image = Image.open(BytesIO(image_response.content)) 
         st.image(image, caption="Result Image")
