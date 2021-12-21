@@ -44,12 +44,12 @@ def get_item_by_img_id(img_id):
 @router.get("/image/{img_id}", response_class=RedirectResponse)
 def get_image_by_img_id(img_id):
     pred = get_item_by_img_id(img_id)
-    return "/" + IMG_PATH + "/" + img_id + pred + ".png"
+    return "/" + GRAD_CAM_PATH + "/" + img_id + pred + ".png"
 
-@router.get("/grad/{img_id}", response_class=RedirectResponse)
+@router.get("/originimage/{img_id}", response_class=RedirectResponse)
 def get_image_by_img_id(img_id):
     pred = get_item_by_img_id(img_id)
-    return "/" + GRAD_CAM_PATH + "/" + img_id + pred + ".png"
+    return "/" + IMG_PATH + "/" + img_id + pred + ".png"
 
 @router.post("/")
 async def get_multilabel(files: List[UploadFile] = File(...)):
