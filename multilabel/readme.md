@@ -1,5 +1,21 @@
 # Multi-label classification
 
+## Model
+- Backbone Model
+  
+  ResNet101
+<img src="https://user-images.githubusercontent.com/68782183/147064277-73dcc696-a07b-4bc9-b47d-b1a833c1946a.png" height="200" width="300">
+
+
+
+- Multi Head
+
+
+<img src="https://user-images.githubusercontent.com/68782183/147063530-8a44018f-c371-44c7-9b5f-07a74cafce3c.png" height="200" width="400">
+
+
+<br>
+
 ## Best Result
 
 - Single Head
@@ -14,6 +30,7 @@ Valid EMR 0.77
 Valid EMR 0.99 
 [weight, config download](https://drive.google.com/drive/folders/1LhFXnXA9X9VEE6SFroAIAVcViE0pvRdT?usp=sharing)
 
+<br>
 
 ## Simple Start
 
