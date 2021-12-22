@@ -17,8 +17,7 @@
 
 
 ## Project overview
-- 현재 사람이 직접 위해물품을 탐지하는 시스템에서는 human inspection error로 인해 80~90%의 정확도를 보입니다. 
-- 그리하여 AI 기술을 활용한 X-Ray Baggage Scanner 자동 검출 솔루션을 통해 더 높은 정확도를 보장하고 다양한 품목에 대하여 검출 가능하도록 하였습니다. 
+현재 사람이 직접 위해물품을 탐지하는 시스템에서는 human inspection error로 인해 80~90%의 정확도를 보입니다. 그리하여 AI 기술을 활용한 X-Ray Baggage Scanner 자동 검출 솔루션을 통해 더 높은 정확도를 보장하고 다양한 품목에 대하여 검출 가능하도록 하였습니다. 
 
 ## Project roadmap
 ![그림2](https://user-images.githubusercontent.com/49234207/147053477-26a6edd2-5ba4-45cf-bab2-f5290ca34286.png)
