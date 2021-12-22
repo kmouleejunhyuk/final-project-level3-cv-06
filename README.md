@@ -48,13 +48,10 @@ Root
 
 14 directories, 19 files
 ```
-- app/
-- data/
-- detection/
-- multilabel/
-- utils/
-- Makefile
-
-
+- app/ : web resource
+- data/ : train data path (ref dataset)
+- detection/ : detection model path
+- multilabel/ : multilabel classification model path
+- Makefile : Web Server Entrypoint
 
 
