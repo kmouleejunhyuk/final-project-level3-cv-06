@@ -45,8 +45,6 @@ Root
 └── utils
     ├── __pycache__
     └── timer.py
-
-14 directories, 19 files
 ```
 - app/ : web resource
 - data/ : train data path (ref dataset)
