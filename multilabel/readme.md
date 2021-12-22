@@ -1,5 +1,33 @@
 # Multi-label classification
 
+## Content
+```
+├── API
+│   ├── model.py
+│   ├── OOD.py
+│   ├── preprocess.py
+│   └── __pycache__
+├── baseline
+│   ├── config
+│   ├── dataset.py
+│   ├── losses.py
+│   ├── metrics.py
+│   ├── model.py
+│   ├── multilabel_utils
+│   ├── optim_sche.py
+│   ├── __pycache__
+│   ├── resources.py
+│   ├── retrain.py
+│   ├── save
+│   ├── train.py
+│   ├── transform.py
+│   ├── twostage_train.py
+│   └── weights
+├── multi_tree.txt
+└── requirements.txt
+```
+
+
 ## Model
 - Backbone Model
   
