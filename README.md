@@ -20,3 +20,7 @@
 - 공항에 입출국할 때 스캔된 결과물을 사람이 직접 판독을 하는데, 사람이 직접 판독하기 때문에 장시간 업무로 인한 스트레스와 피로감으로 실수가 발생합니다. 
 - 이 때문에 사람의 정확도는 80에서 90%로 그렇게 높지 않고, 실수도 자주 발생합니다.
 - 그래서 저희는 자동 검출 솔루션을 통해 휴먼 inspection 에러를 줄일 수 있다고 판단을 해서 이 프로젝트를 진행했습니다.
+
+## dataset 
+- [AI Hub 공항 유해물품 xray 데이터](https://aihub.or.kr/aidata/33)
+<img src="https://aihub.or.kr/sites/default/files/inline-images/%EB%8C%80%ED%91%9C%EB%8F%84%EB%A9%B4_1.png">
