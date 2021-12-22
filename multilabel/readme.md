@@ -48,9 +48,11 @@ root/multilabel
 
 ## Inference Result & weights
 ```
-Valid EMR 0.99 
-[weight, config download](https://drive.google.com/drive/folders/1LhFXnXA9X9VEE6SFroAIAVcViE0pvRdT?usp=sharing)
+- Valid EMR : 0.99 
+- Inference time : under 0.1s (with GPU, without grad-cam)
 ```
+[weight, config download](https://drive.google.com/drive/folders/1LhFXnXA9X9VEE6SFroAIAVcViE0pvRdT?usp=sharing)
+
 
 ![samples](https://user-images.githubusercontent.com/49234207/147074833-c6cbd799-1ec3-4fba-8b94-293e284a7877.png)
 
