@@ -159,7 +159,6 @@ def train(config_train, config_dir):
                 wandb_log["Train/loss"] = round(loss.item(), 4)
                 wandb.log(wandb_log, step)
             step += 1
-            break
         
         if scheduler:
             scheduler.step()
@@ -218,7 +217,6 @@ def train(config_train, config_dir):
                 matrix = get_confusion_matrix(preds, labels)
                 val_confusion_matrix += np.array(matrix)
                 valid_emr.append(np.mean((preds == labels).min(axis = 1)))
-                break
 
             val_epoch_loss /= val_len
 
