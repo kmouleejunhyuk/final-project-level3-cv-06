@@ -43,7 +43,6 @@ Root
 ├── requirements.txt
 ├── setup.py
 └── utils
-    ├── __pycache__
     └── timer.py
 ```
 - app/ : web resource
