@@ -66,5 +66,5 @@ Root
 
 
 ## Test setting
-- CPU : ___
-- GPU : ___
+- CPU : Intel(R) Xeon(R) Gold 5120 CPU(8 core)
+- GPU : Tesla V100-PCIE-32gb
