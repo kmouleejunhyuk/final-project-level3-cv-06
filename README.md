@@ -37,6 +37,7 @@ Root
 ├── app
 ├── data -> /opt/ml/data/data
 ├── detection
+├── Dockerfile
 ├── Makefile
 ├── multilabel
 ├── README.md
@@ -53,5 +54,6 @@ Root
 - detection/ : detection model path
 - multilabel/ : multilabel classification model path
 - Makefile : Web Server Entrypoint
+- Dockerfile : Dockerfile 
 
 
