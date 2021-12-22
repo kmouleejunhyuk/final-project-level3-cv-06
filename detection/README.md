@@ -14,7 +14,6 @@
 ```
 - mAP : 0.92
 - 실행시간 : under 0.2s/image (with GPU)
-          under 5s/image (without GPU)
 ```
 <img src="https://user-images.githubusercontent.com/51853700/147058926-2b7a1eb1-2f33-4d40-8705-459f14df8d90.png" width=800 height=600>
 
