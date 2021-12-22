@@ -25,7 +25,6 @@ root/multilabel
 │   ├── inference.ipynb
 │   ├── transform.py
 │   └── weights
-├── multi_tree.txt
 └── requirements.txt
 ```
 
