@@ -32,3 +32,7 @@ wandb
 personal/
 streamlit/
 final_project_level3_cv_06.egg-info/
+
+app/static/detection_pred
+app/static/multilabel_grad_cam
+app/static/multilabel_pred
