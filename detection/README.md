@@ -1,4 +1,7 @@
 
+## Pytorch Lightning
+<img src="https://user-images.githubusercontent.com/51853700/147061484-ad7be02d-e786-4eeb-8520-d0a828f4ddc3.png" width=400 height=150>
+
 
 ## Object Detection Model
 ```
@@ -19,4 +22,5 @@
 <img src="https://user-images.githubusercontent.com/51853700/147060385-d7b3941c-f76d-4917-aab8-e88f3daff68c.png" width=600 height=400>
 
 ## References
-
+https://github.com/PyTorchLightning/pytorch-lightning  
+https://arxiv.org/pdf/1506.01497.pdf
