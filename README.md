@@ -30,7 +30,7 @@
 <img src="https://aihub.or.kr/sites/default/files/inline-images/%EB%8C%80%ED%91%9C%EB%8F%84%EB%A9%B4_1.png">
 
 
-## Content
+## Contents
 ```
 Root
 ├── app
@@ -53,3 +53,18 @@ Root
 - Dockerfile : Dockerfile 
 
 
+## Result
+- 기존 20개 위해품목 감지
+  - 38개 전체 위해품목 감지 가능
+- 기존 정확도 90% 이상 
+  - (Multilabel)EMR 기준 0.99 이상 
+  - (Object detection) mAP 기준 0.9 이상
+- 기존 inference time 0.7s/image
+  - under 0.2s/image (with GPU)
+  - under 5s/image (without GPU)
+    - GPU 추가 없이 소프트웨어 설치만으로 이용 가능한 수준
+
+
+## Test setting
+- CPU : ___
+- GPU : ___
