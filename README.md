@@ -22,7 +22,8 @@
 - 그래서 저희는 자동 검출 솔루션을 통해 휴먼 inspection 에러를 줄일 수 있다고 판단을 해서 이 프로젝트를 진행했습니다.
 
 ## Project roadmap
-![그림2](https://user-images.githubusercontent.com/49234207/147051585-6bbad261-c8b2-4948-baec-5d0ef7ad7aa5.png)
+![그림2](https://user-images.githubusercontent.com/49234207/147053477-26a6edd2-5ba4-45cf-bab2-f5290ca34286.png)
+
 
 
 
