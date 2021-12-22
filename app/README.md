@@ -1,4 +1,4 @@
-## Content
+## Contents
 ```
 app
 ├── app_config.py
