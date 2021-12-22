@@ -34,7 +34,7 @@
 ```
 Root
 ├── app
-├── data -> /opt/ml/data/data
+├── data
 ├── detection
 ├── Dockerfile
 ├── Makefile
@@ -46,7 +46,7 @@ Root
     └── timer.py
 ```
 - app/ : web resource
-- data/ : train data path (ref dataset)
+- data/ : train data path (mount dataset path)
 - detection/ : detection model path
 - multilabel/ : multilabel classification model path
 - Makefile : Web Server Entrypoint
