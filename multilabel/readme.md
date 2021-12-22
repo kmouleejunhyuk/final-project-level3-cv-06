@@ -9,8 +9,7 @@ root/multilabel
 ├── API
 │   ├── model.py
 │   ├── OOD.py
-│   ├── preprocess.py
-│   └── __pycache__
+│   └── preprocess.py 
 ├── baseline
 │   ├── config
 │   ├── dataset.py
@@ -19,14 +18,12 @@ root/multilabel
 │   ├── model.py
 │   ├── multilabel_utils
 │   ├── optim_sche.py
-│   ├── __pycache__
 │   ├── resources.py
 │   ├── retrain.py
 │   ├── save
 │   ├── train.py
 │   ├── inference.ipynb
 │   ├── transform.py
-│   ├── twostage_train.py
 │   └── weights
 ├── multi_tree.txt
 └── requirements.txt
