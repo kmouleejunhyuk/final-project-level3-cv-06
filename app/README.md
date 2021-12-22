@@ -44,9 +44,9 @@ app
   - restful 한 설계를 따르도록 작성함
 
 ## Static
-- static한 리소스를 제공하기 위한 경로
-  - detection_pred : detection 요청으로 들어온 이미지와 예측 결과를 저장하는 경로
-  - multilabel_grad_cam : multilabel classification 중 상세 정보 표시를 위해 grad cam을 저장하는 경로
-  - multilabel_pred : multilabel classification 요청으로 들어온 이미지와 예측 결과를 저장하는 경로
-  - profile : 메인 페이지의 팀원 소개를 위한 profile 사진 경로
+static한 리소스를 제공하기 위한 경로
+- detection_pred : detection 요청으로 들어온 이미지와 예측 결과를 저장하는 경로
+- multilabel_grad_cam : multilabel classification 중 상세 정보 표시를 위해 grad cam을 저장하는 경로
+- multilabel_pred : multilabel classification 요청으로 들어온 이미지와 예측 결과를 저장하는 경로
+- profile : 메인 페이지의 팀원 소개를 위한 profile 사진 경로
   
