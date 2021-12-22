@@ -67,5 +67,4 @@ Root
 
 ## Test setting
 - CPU : ___
-- RAM : ___
 - GPU : ___
