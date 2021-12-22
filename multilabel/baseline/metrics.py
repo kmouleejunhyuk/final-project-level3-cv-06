@@ -5,7 +5,7 @@ from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_sc
 np.seterr(divide='ignore', invalid='ignore')
 
     
-def top_k_labels(outs: torch.Tensor, k: torch.Tensor, identity = True):
+def get_labels(outs: torch.Tensor, k: torch.Tensor, identity = True):
     if identity:
         k = torch.argmax(k, dim = -1).clone().detach().tolist()
         inlet = outs.clone().detach()
@@ -61,5 +61,5 @@ def get_metrics_from_matrix(confusion_matrix):
 
 
 if __name__ == '__main__':
-    ans = top_k_labels(torch.tensor([[2,1,3,4],[2,1,3,4]]), [2, 3])
+    ans = get_labels(torch.tensor([[2,1,3,4],[2,1,3,4]]), [2, 3])
     print(ans)

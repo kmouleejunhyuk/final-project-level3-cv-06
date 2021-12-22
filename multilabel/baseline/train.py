@@ -2,74 +2,39 @@ import argparse
 import yaml
 import glob
 import os
-import random
-import re
 from importlib import import_module
-from pathlib import Path
-
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import glob
-
 import wandb
+
 from dataset import CustomDataset
 from losses import create_criterion
 from optim_sche import get_opt_sche
-from metrics import get_metrics_from_matrix, top_k_labels, get_confusion_matrix
-from multilabel_utils.utils import draw_batch_images
-import shutil
-
-
-category_names = [
-    'Aerosol', 
-    'Alcohol', 
-    'Awl', 
-    'Axe', 
-    'Bat', 
-    'Battery', 
-    'Bullet', 
-    'Firecracker', 
-    'Gun', 
-    'GunParts', 
-    'Hammer',
-    'HandCuffs', 
-    'HDD', 
-    'Knife', 
-    'Laptop', 
-    'Lighter', 
-    'Liquid', 
-    'Match', 
-    'MetalPipe', 
-    'NailClippers', 
-    'PortableGas', 
-    'Saw', 'Scissors', 
-    'Screwdriver',
-    'SmartPhone', 
-    'SolidFuel', 
-    'Spanner', 
-    'SSD', 
-    'SupplymentaryBattery', 
-    'TabletPC', 
-    'Thinner', 
-    'USB', 
-    'ZippoOil', 
-    'Plier', 
-    'Chisel', 
-    'Electronic cigarettes',
-    'Electronic cigarettes(Liquid)', 
-    'Throwing Knife'
-]
-
-def seed_everything(seed):
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # if use multi-GPU
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    np.random.seed(seed)
-    random.seed(seed)
+from metrics import (
+    get_metrics_from_matrix, 
+    get_labels, 
+    get_confusion_matrix
+)
+from transform import (
+    train_transform, 
+    val_transform, 
+    train_aug_transform
+)
+from multilabel_utils.utils import (
+    draw_batch_images, 
+    seed_everything, 
+    increment_path, 
+    createDirectory,
+    copy_config,
+    is_cuda
+)
+from resources import (
+    category_names, 
+    class_num
+)
 
 
 def get_lr(optimizer):
@@ -77,64 +42,29 @@ def get_lr(optimizer):
         return param_group["lr"]
 
 
-def increment_path(path, exist_ok=False):
-    """Automatically increment path, i.e. runs/exp --> runs/exp0, runs/exp1 etc.
-
-    Args:
-        path (str or pathlib.Path): f"{model_dir}/{args.name}".
-        exist_ok (bool): whether increment path (increment if False).
-    """
-    path = Path(path)
-    if (path.exists() and exist_ok) or (not path.exists()):
-        return str(path)
-    else:
-        dirs = glob.glob(f"{path}*")
-        matches = [re.search(rf"%s(\d+)" % path.stem, d) for d in dirs]
-        i = [int(m.groups()[0]) for m in matches if m]
-        n = max(i) + 1 if i else 2
-        return f"{path}{n}"
-
-
-def createDirectory(save_dir):
-    try:
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-    except OSError:
-        print("Error: Failed to create the directory.")
-
-
-def train(model_dir, config_train, config_dir):
+def train(config_train, config_dir):
     # settings
-    N_CLASSES = 38
-    THR = 0.5
+    model_dir = config_train['model_dir']
 
     seed_everything(config_train['seed'])
-    save_dir = increment_path(
-        os.path.join(
-            model_dir, 
-            config_train['name']))
+    save_dir = increment_path(os.path.join(model_dir, config_train['name']))
     createDirectory(save_dir)
-    shutil.copyfile(
-        config_dir, 
-        os.path.join(
-            save_dir, 
-            config_dir.split('/')[-1]))
-    
-    use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
-    print("pytorch version: {}".format(torch.__version__))
-    print("GPU 사용 가능 여부: {}".format(torch.cuda.is_available()))
+    copy_config(config_dir, save_dir)
+
+    use_cuda, device = is_cuda()
+    identity = True if 'two' in config_train['model'] else False
 
     # dataset
-    import sys
-    sys.path.append('/opt/ml/finalproject/multilabel/baseline')
-    from dataset import train_transform, val_transform
-    
+    if config_train.get('augmentation', 0):
+        tr_transform = train_aug_transform
+    else:
+        tr_transform = train_transform
+        
     train_dataset = CustomDataset(
         image_dir=config_train['image_path'], 
         data_dir=config_train['train_path'],
-        mode="sampled", 
-        transform=train_transform
+        mode="train", 
+        transform=tr_transform
     )
     val_dataset = CustomDataset(
         image_dir=config_train['image_path'], 
@@ -163,43 +93,58 @@ def train(model_dir, config_train, config_dir):
     )
 
     # model
+    N_CLASSES = class_num
     model_module = getattr(import_module("model"), config_train['model'])
-    model = model_module(num_classes=N_CLASSES)
+    model = model_module(num_classes=N_CLASSES, cls_classes = config_train.get('cls_classes', 0), device = device)
     model = model.to(device)
+
     if config_train['wandb'] == True:
         wandb.watch(model)
 
     # loss & optimizer
     criterion = create_criterion(config_train['criterion'])
-    # metric_key = ['recall', 'precision', 'f1', 'emr']
 
     # optimizer & scheduler
     optimizer, scheduler = get_opt_sche(config_train, model)
-
 
     # start train
     best_val_EMR = -1
     best_val_loss = np.inf
     step = 0
-
+    
     for epoch in range(config_train['epochs']):
         # train loop
         model.train()
         train_emr = []
         train_confusion_matrix = np.zeros((38, 4))
-        for idx, (images, labels) in tqdm(enumerate(train_loader), desc = f'train/epoch {epoch}', leave = False, total=len(train_loader)):
+        for (images, labels) in tqdm(train_loader, desc = f'train/epoch {epoch}', leave = False, total=len(train_loader)):
             images = images.to(device)
-            labels = labels.type(torch.FloatTensor).to(device)
+            
             optimizer.zero_grad()
+            outs, cls_outs = model(images)
 
-            outs = model(images)
-            preds = torch.where(outs>THR, 1., 0.).detach()
-            loss = criterion(outs, labels)
+            loss = model.get_loss(
+                outs, 
+                cls_outs,
+                labels, 
+                criterion
+            )
 
+            if config_train['model'] == 'ResNet101':
+                THR = 0.5 #hardcoded. use in caution
+                preds = torch.where(outs>THR, 1., 0.).detach()
+
+            else:
+                preds = get_labels(
+                    outs, 
+                    cls_outs, 
+                    identity = identity
+                )
+            
             loss.backward()
             optimizer.step()
             
-            # acc, recall, precision, auc
+            # EMR/loss
             images = images.detach().cpu()
             preds = preds.detach().cpu().numpy()
             labels = labels.detach().cpu().numpy()
@@ -214,6 +159,7 @@ def train(model_dir, config_train, config_dir):
                 wandb_log["Train/loss"] = round(loss.item(), 4)
                 wandb.log(wandb_log, step)
             step += 1
+            break
         
         if scheduler:
             scheduler.step()
@@ -222,22 +168,14 @@ def train(model_dir, config_train, config_dir):
         if config_train['wandb'] == True:
             wandb_log = {}
             _, metrics = get_metrics_from_matrix(train_confusion_matrix)
-            fig = draw_batch_images(
-                images, 
-                labels, 
-                preds, 
-                category_names
-            )
-        
             wandb_log["Train/mAR"] = metrics[0]
             wandb_log["Train/mAP"] = metrics[1]
             wandb_log["Train/mF1"] = metrics[2]
 
             wandb_log["Train/epoch"] = epoch + 1
             wandb_log["learning_rate"] = get_lr(optimizer)
-            wandb_log["Image/train image"] = fig
+            wandb_log["Image/train image"] = draw_batch_images(images, labels, preds, category_names)
             wandb.log(wandb_log, step)
-
 
         # val loop
         with torch.no_grad():
@@ -248,26 +186,44 @@ def train(model_dir, config_train, config_dir):
             val_len = len(val_loader)
             valid_emr = []
 
-            for (images, labels) in tqdm(val_loader, desc = f'val/epoch {epoch}', leave = False, total=len(val_loader)):
+            for (images, labels) in tqdm(val_loader, desc = f'val/epoch {epoch}', leave = False, total=val_len):
                 images = images.to(device)
-                labels = labels.type(torch.FloatTensor).to(device)
+                
+                outs, cls_outs = model(images)
 
-                outs = model(images)
-                preds = torch.where(outs>THR, 1., 0.).detach()
-                loss = criterion(outs, labels).item()
-                val_epoch_loss += loss
+                loss = model.get_loss(
+                    outs, 
+                    cls_outs, 
+                    labels, 
+                    criterion
+                )
+
+                if config_train['model'] == 'ResNet101':
+                    THR = 0.5 #hardcoded. use in caution
+                    preds = torch.where(outs>THR, 1., 0.).detach()
+                else:
+                    preds = get_labels(
+                        outs, 
+                        cls_outs, 
+                        identity = identity
+                    )
+                
+                val_epoch_loss += loss.detach().item()
 
                 # recall, precision, f1
-                images, preds, labels = images.detach().cpu(), preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
+                images = images.detach().cpu()
+                preds = preds.detach().cpu().numpy()
+                labels = labels.detach().cpu().numpy()
+
                 matrix = get_confusion_matrix(preds, labels)
                 val_confusion_matrix += np.array(matrix)
                 valid_emr.append(np.mean((preds == labels).min(axis = 1)))
+                break
 
             val_epoch_loss /= val_len
 
             best_val_loss = min(best_val_loss, val_epoch_loss)
             valid_emr = np.mean(valid_emr)
-            best_val_loss = min(best_val_loss, val_epoch_loss)
             if valid_emr > best_val_EMR:
                 print(f"New best model for EMR : {valid_emr:4.2%}! saving the best model..")
                 before_file = glob.glob(os.path.join(save_dir, 'best.pth'))
@@ -276,7 +232,8 @@ def train(model_dir, config_train, config_dir):
                 torch.save(model.state_dict(), f"{save_dir}/best.pth")
                 best_val_EMR = valid_emr
             torch.save(model.state_dict(), f"{save_dir}/last.pth")
-    
+
+                
             if config_train['wandb'] == True:
                 label_metric, (mAR, mAP, mF1) = get_metrics_from_matrix(val_confusion_matrix)
                 # wandb log
@@ -301,12 +258,9 @@ def train(model_dir, config_train, config_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--config_train', 
-        default='/opt/ml/finalproject/multilabel/baseline/config/train.yaml', 
-        type=str, 
-        help='path of train configuration yaml file'
-    )
+    
+    parser.add_argument('--config_train', default='/opt/ml/finalproject/multilabel/baseline/config/multi_head_train.yaml', type=str, help='path of train configuration yaml file')
+
     args = parser.parse_args()
 
     with open(args.config_train) as f:
@@ -314,17 +268,8 @@ if __name__ == "__main__":
 
     # wandb init
     if config_train['wandb'] == True:
-        wandb.init(
-            entity=config_train['entity'],
-             project=config_train['project']
-        )
+        wandb.init(entity=config_train['entity'], project=config_train['project'], config=config_train)
         wandb.run.name = config_train['name']
         wandb.config.update(args)
 
-    model_dir = config_train['model_dir']
-
-    train(
-        model_dir, 
-        config_train, 
-        args.config_train
-    )
+    train(config_train, args.config_train)

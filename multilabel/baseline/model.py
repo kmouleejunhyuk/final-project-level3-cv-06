@@ -4,6 +4,26 @@ from torchvision import models
 
 
 class ResNet101(nn.Module):
+    def __init__(self, num_classes, cls_classes = None, device = 'cuda'):
+        super().__init__()
+
+        self.backbone = models.resnet101(pretrained=True)
+        self.backbone.fc = nn.Linear(2048, num_classes)
+        self.sigmoid = nn.Sigmoid()
+        self.device = device
+
+    def forward(self, x):
+        output = self.backbone(x)
+        output = self.sigmoid(output)
+        return output, 0
+
+    def get_loss(self, outs, cls_outs, labels, criterion):
+        labels = labels.type(torch.FloatTensor).to(self.device)
+        return criterion(outs, labels)
+
+
+# resnet for dependency, do not load in training session
+class ResNet101_(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
 
@@ -21,8 +41,8 @@ class Twostage(nn.Module):
     def __init__(self, num_classes, cls_classes, device):
         super().__init__()
 
-        self.feature_model = ResNet101(num_classes)
-        self.cls_model = ResNet101(cls_classes)
+        self.feature_model = ResNet101_(num_classes)
+        self.cls_model = ResNet101_(cls_classes)
         self.device = device
 
     def forward(self, x):

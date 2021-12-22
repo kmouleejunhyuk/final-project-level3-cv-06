@@ -10,7 +10,6 @@ class FocalLoss(nn.Module):
         self.weight = weight
         self.gamma = gamma
         self.reduction = reduction
-        raise NotImplementedError
 
     def forward(self, input_tensor, target_tensor):
         log_prob = F.log_softmax(input_tensor, dim=-1)
@@ -24,8 +23,8 @@ class FocalLoss(nn.Module):
 
 _criterion_entropoints = {
     "cross_entropy": nn.CrossEntropyLoss(),
-    "focal": FocalLoss,
-    "mse": nn.MSELoss
+    "focal": FocalLoss(),
+    "mse": nn.MSELoss()
 }
 
 
