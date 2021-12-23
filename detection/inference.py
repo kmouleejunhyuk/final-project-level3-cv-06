@@ -6,9 +6,9 @@ import pytorch_lightning as pl
 import torch
 from albumentations.pytorch import ToTensorV2
 from models.fasterrcnn import LitModel
+from detection.config.detection_config import config as CONFIG
 
-
-pl.seed_everything(42)
+pl.seed_everything(CONFIG.seed)
 chk_path = '/opt/ml/finalproject/detection/lightning_logs/version_0/checkpoints/epoch=49-step=32749.ckpt'
 model = LitModel().load_from_checkpoint(chk_path)
 model.eval()
@@ -32,7 +32,7 @@ image = read_img('/opt/ml/finalproject/detection/data/sampled/Astrophysics/[Astr
 transform = valid_transform()
 image = transform(image=image)['image']
 image = image.unsqueeze(dim=0)
-print(image.shape)
+
 with torch.no_grad():
     output = model(image)
     results = []
@@ -44,10 +44,6 @@ with torch.no_grad():
     labels = labels[indexes]
     scores = scores[indexes]
     boxes = boxes[indexes]
-
-# print(labels)
-# print(scores)
-# print(boxes)
 
 image = image.squeeze(dim=0)
 image = image.permute(1, 2, 0).numpy()

@@ -1,6 +1,4 @@
-
 import io
-
 import albumentations as A
 import cv2
 import numpy as np
@@ -21,6 +19,7 @@ def model_loader():
     chk_path = MODELS.root + MODELS.save_path
 
     model = DetectionModel().load_from_checkpoint(chk_path).to(DEVICE)
+    print("model.precision : ", model.precision)
     model.eval()
 
     return model

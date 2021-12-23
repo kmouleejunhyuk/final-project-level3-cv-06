@@ -1,0 +1,62 @@
+seed: 1004
+num_classes: 39
+epochs: 20
+batch_size: 8
+workers: 2
+model: "fcnn"  
+lr: 1e-4
+stage: "both"
+gpus: 1
+precision: 16
+
+optimizer: "adam"
+
+conf_thres: 0.3
+iou_thres: 0.5
+
+save_dir: "/opt/ml/finalproject/detection"
+checkpoint_path: "/opt/ml/finalproject/detection/saved_models/"
+
+entity: cider6
+project: "final_project"
+name: "resnet50_eval_sampled"
+
+classes:
+  - Aerosol
+  - Alcohol
+  - Awl
+  - Axe
+  - Bat
+  - Battery
+  - Bullet
+  - Firecracker
+  - Gun
+  - GunParts
+  - Hammer
+  - HandCuffs
+  - HDD
+  - Knife
+  - Laptop
+  - Lighter
+  - Liquid
+  - Match
+  - MetalPipe
+  - NailClippers
+  - PortableGas
+  - Saw
+  - Scissors
+  - Screwdriver
+  - SmartPhone
+  - SolidFuel
+  - Spanner
+  - SSD
+  - SupplymentaryBattery
+  - TabletPC
+  - Thinner
+  - USB
+  - ZippoOil
+  - Plier
+  - Chisel
+  - Electronic cigarettes
+  - Electronic cigarettes(Liquid)
+  - Throwing Knife

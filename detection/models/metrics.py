@@ -4,7 +4,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 def box_iou_calc(boxes1, boxes2):
     # https://github.com/pytorch/vision/blob/master/torchvision/ops/boxes.py
     """
