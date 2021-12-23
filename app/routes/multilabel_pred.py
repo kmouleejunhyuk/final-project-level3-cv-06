@@ -61,16 +61,17 @@ async def get_multilabel(files: List[UploadFile] = File(...)):
 
         pred, similarity, grad_arr = OOD_inference(MODEL, GRAD_CAM_DENSITY, image)
 
-        if similarity > 0.5:
-            filename, ext = os.path.splitext(file.filename)
-            file_id = f"{offset+idx:06d}"
-            filename = file_id + str(pred) + ext
-            with open(os.path.join(IMG_PATH, filename), "wb") as fp:
-                fp.write(file_bytes)
-            print(type(grad_arr))
-            grad_cam = Image.fromarray(grad_arr)
-            grad_cam.save(os.path.join(GRAD_CAM_PATH, filename))
-            ITEMS[file_id] = str(pred)
+        if similarity < 0.5:
+            pred = '["It is not a X-ray image!"]'
+        filename, ext = os.path.splitext(file.filename)
+        file_id = f"{offset+idx:06d}"
+        filename = file_id + str(pred) + ext
+        with open(os.path.join(IMG_PATH, filename), "wb") as fp:
+            fp.write(file_bytes)
+        print(type(grad_arr))
+        grad_cam = Image.fromarray(grad_arr)
+        grad_cam.save(os.path.join(GRAD_CAM_PATH, filename))
+        ITEMS[file_id] = str(pred)
             
     return file_id
     
