@@ -40,7 +40,9 @@
 ## Inference Result & weights
 ```
 - mAP : 0.92
-- 실행시간 : under 0.2s/image (with GPU)
+- 실행시간
+  GPU : under 0.2s/image
+  CPU : under 2s/image
 ```
 weight,config download
 
