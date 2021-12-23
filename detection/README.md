@@ -37,15 +37,27 @@
 - 백본 : resnet50
 - 모델 : faster-rcnn
 ```
-## Inference 결과
+## Inference Result & weights
 ```
 - mAP : 0.92
 - 실행시간 : under 0.2s/image (with GPU)
 ```
+weight,config download
+
 ![image](https://user-images.githubusercontent.com/61641072/147064360-47fd7dd2-9ff4-4792-96bc-8e79d5f588cb.png)
 
 ## Confusion Matrix
 <img src="https://user-images.githubusercontent.com/51853700/147060385-d7b3941c-f76d-4917-aab8-e88f3daff68c.png" width=600 height=400>
+
+## Simple Start
+Train
+```
+python train.py
+```
+Inference
+```
+detection/detection_utils/EDA.ipynb
+```
 
 ## References
 https://github.com/PyTorchLightning/pytorch-lightning  
