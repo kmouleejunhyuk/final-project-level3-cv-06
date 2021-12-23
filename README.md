@@ -71,5 +71,5 @@ Root
 
 
 ## Test setting
-- CPU : Intel(R) Xeon(R) Gold 5120 CPU(8 core)
-- GPU : Tesla V100-PCIE-32gb
+- CPU : Intel(R) Xeon(TM) i7-8700 CPU(12 core)
+- GPU : GeForce GTX 1080
