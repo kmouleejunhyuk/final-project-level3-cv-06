@@ -45,7 +45,7 @@ root/multilabel
 ## Inference Result & weights
 ```
 - Valid EMR : 0.99 
-- Inference time : under 0.1s (with GPU, without grad-cam)
+- Inference time : under 0.2s (with GPU, without grad-cam)
 ```
 [weight, config download](https://drive.google.com/drive/folders/1LhFXnXA9X9VEE6SFroAIAVcViE0pvRdT?usp=sharing)
 
