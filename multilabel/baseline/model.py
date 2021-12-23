@@ -164,7 +164,7 @@ class multihead_hooked(nn.Module):
 
 
     def get_binary_label(self, labels):
-        _ones = torch.ones((labels.shape)).to('cuda')
+        _ones = torch.ones((labels.shape)).to(self.device)
         counterpart = _ones - labels
         cats = torch.stack([counterpart, labels], axis = 0)
         return cats.permute(1,2,0).to(self.device)
