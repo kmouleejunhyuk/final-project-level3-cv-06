@@ -14,7 +14,7 @@ from multilabel.API.preprocess import processer
 from multilabel.baseline.transform import val_transform
 from multilabel.baseline.model import multihead_hooked
 from app.app_config import config as CONFIG
-from multilabel.baseline.metrics import top_k_labels
+from multilabel.baseline.metrics import get_labels
 
 MODELS = CONFIG.multilabel_model
 DEVICE = CONFIG.device
@@ -153,7 +153,7 @@ def OOD_inference(model: nn.Module, xray_density: np.ndarray, image, device: str
 
     #gradcam
     grad_activation = model.selected_out
-    preds = top_k_labels(out, cls_out, identity = False).to(device)
+    preds = get_labels(out, cls_out, identity = False).to(device)
 
     loss = model.get_loss(
         out,
