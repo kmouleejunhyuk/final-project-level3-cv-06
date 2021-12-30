@@ -5,7 +5,7 @@ __pycache__/
 data/eval
 data/train
 data/sampled
-
+/.venv
 *.DS_Store
 
 *.ckpt
