@@ -10,31 +10,35 @@ from torchvision.ops import box_iou
 from models.metrics import ConfusionMatrix
 from models.save_fig import inference_figure
 
+
 class LitModel(LightningModule):
-    def __init__(self, config):
+    def __init__(self):
         super().__init__()
-        self.config = config
-        self.num_classes = self.config.num_classes # include background (0: background)
-
-        classes_dict = {}
-        for i in range(self.num_classes-1):
-            classes_dict[i+1] = self.config.classes[i]
-
-        self.classes = classes_dict
-        self.model = fasterrcnn_resnet50_fpn(num_classes=self.num_classes)
+        num_classes = 39 # include background (0: background)
+        self.classes = {1: 'Aerosol', 2: 'Alcohol', 3: 'Awl', 4: 'Axe', 5: 'Bat',
+                        6: 'Battery', 7: 'Bullet', 8: 'Firecracker', 9: 'Gun', 10: 'GunParts',
+                        11: 'Hammer', 12: 'HandCuffs', 13: 'HDD', 14: 'Knife', 15: 'Laptop',
+                        16: 'Lighter', 17: 'Liquid', 18: 'Match', 19: 'MetalPipe',
+                        20: 'NailClippers', 21: 'PrtableGas', 22: 'Saw', 23: 'Scissors',
+                        24: 'Screwdriver', 25: 'SmartPhone', 26: 'SolidFuel', 27: 'Spanner',
+                        28: 'SSD', 29: 'SupplymentaryBattery', 30: 'TabletPC', 31: 'Thinner',
+                        32: 'USB', 33: 'ZippoOil', 34: 'Plier', 35: 'Chisel',
+                        36: 'Electronic cigarettes', 37: 'Electronic cigarettesLiquid', 38: 'Throwing Knife'}
         
+        self.model = fasterrcnn_resnet50_fpn(num_classes=num_classes)
+        
+        self.class_aps = {str(i):[] for i in range(39)}
         self.val_map = MAP(class_metrics=True, dist_sync_on_step=True, )
-        self.conf_mat = ConfusionMatrix(num_classes=self.num_classes-1, 
-                                        CONF_THRESHOLD=self.config.conf_thres, 
-                                        IOU_THRESHOLD=self.config.iou_thres)
+        self.conf_mat = ConfusionMatrix(num_classes=num_classes-1)
         self.conf_mat_columns = [v for k, v in self.classes.items()]
         self.cnt = 0
 
-    def forward(self, imgs): # 필요 여부 논의
+    def forward(self, imgs):
         self.model.eval()
         return self.model(imgs)
 
     def training_step(self, batch, batch_idx):
+        # "batch" is the output of the training data loader.
         imgs, targets = batch
         loss_dict = self.model(imgs, targets) # loss_classifier, loss_box_reg, loss_objectness, loss_rpn_box_reg
         loss = sum(loss for loss in loss_dict.values())
@@ -84,9 +88,9 @@ class LitModel(LightningModule):
             label = np.array([[label.cpu().item(), *box.cpu().numpy()] for label, box in zip(target_labels, target_boxes)])
 
         if self.cnt % 170 == 0:
-            figure = inference_figure(imgs, preds, target, self.classes, save_dir=self.config.save_dir)
-            figure.savefig(Path(self.config.save_dir) / 'valid_inference.png', dpi=250)
-            self.logger.log_image(key="inference", images=[self.config.save_dir+'/valid_inference.png'])
+            figure = inference_figure(imgs, preds, target, self.classes, save_dir='/opt/ml/finalproject/detection')
+            figure.savefig(Path('/opt/ml/finalproject/detection') / 'valid_inference.png', dpi=250)
+            self.logger.log_image(key="inference", images=['/opt/ml/finalproject/detection/valid_inference.png'])
 
         self.val_map.update(preds=preds, target=target)
         self.conf_mat.process_batch(detections=pred, labels=label)
@@ -106,12 +110,9 @@ class LitModel(LightningModule):
             for i,v in enumerate(result['map_per_class'].tolist()):
                 self.log(f"classes/{self.classes[int(i)+1]}", v)
         
-        self.conf_mat.plot(save_dir=self.config.save_dir, names=self.conf_mat_columns)
-        self.logger.log_image(key="confusion", images=[self.config.save_dir+'/confusion_matrix.png'])
+        self.conf_mat.plot(save_dir='/opt/ml/finalproject/detection', names=self.conf_mat_columns)
+        self.logger.log_image(key="confusion", images=['/opt/ml/finalproject/detection/confusion_matrix.png'])
 
     def configure_optimizers(self):
-        if self.config.optimizer == 'adam':
-            optimizer = torch.optim.Adam(self.model.parameters(), lr=self.config.lr)
-        else:
-            raise Exception("optimizer does not exist")
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-4)
         return optimizer
